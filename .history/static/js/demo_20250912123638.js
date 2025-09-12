@@ -148,7 +148,6 @@ function reattachEventListeners() {
 
 function clearChatStorage() {
     try {
-        localStorage.removeItem('lotus-chat-content');
         localStorage.removeItem('lotus-chat-history');
         localStorage.removeItem('lotus-chat-session');
         console.log('🗑️ Chat storage cleared');

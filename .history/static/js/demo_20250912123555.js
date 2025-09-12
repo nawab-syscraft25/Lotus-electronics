@@ -57,33 +57,17 @@ function saveChatToStorage() {
 
 function loadChatFromStorage() {
     try {
-        const savedContent = localStorage.getItem('lotus-chat-content');
+        const savedMessages = localStorage.getItem('lotus-chat-history');
         const savedSession = localStorage.getItem('lotus-chat-session');
         
-        if (savedContent && savedSession) {
-            sessionId = savedSession; // Restore the session ID
-            
-            // Restore the complete HTML content
-            chatMessages.innerHTML = savedContent;
-            
-            // Re-attach event listeners for any interactive elements that might have been restored
-            reattachEventListeners();
-            
-            scrollToBottom();
-            console.log('📥 Chat restored from storage with complete HTML content');
-            return true; // Indicate that chat was restored
-        }
-        
-        // Fallback to old method if new content storage is not available
-        const savedMessages = localStorage.getItem('lotus-chat-history');
         if (savedMessages && savedSession) {
             const messages = JSON.parse(savedMessages);
-            sessionId = savedSession;
+            sessionId = savedSession; // Restore the session ID
             
             // Clear current chat
             chatMessages.innerHTML = '';
             
-            // Restore messages using old method
+            // Restore messages
             messages.forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `message ${msg.isUser ? 'user' : 'bot'}`;
@@ -102,11 +86,10 @@ function loadChatFromStorage() {
             
             if (messages.length > 0) {
                 scrollToBottom();
-                console.log('📥 Chat restored from storage (legacy method):', messages.length, 'messages');
-                return true;
+                console.log('📥 Chat restored from storage:', messages.length, 'messages');
+                return true; // Indicate that chat was restored
             }
         }
-        
         return false; // No chat to restore
     } catch (error) {
         console.error('❌ Error loading chat from storage:', error);
@@ -114,41 +97,8 @@ function loadChatFromStorage() {
     }
 }
 
-// Function to reattach event listeners to restored content
-function reattachEventListeners() {
-    try {
-        // Reattach carousel navigation events
-        const carouselPrevBtns = chatMessages.querySelectorAll('.prev-btn');
-        const carouselNextBtns = chatMessages.querySelectorAll('.next-btn');
-        
-        carouselPrevBtns.forEach(btn => {
-            const carousel = btn.parentElement.querySelector('.carousel-container');
-            if (carousel) {
-                btn.onclick = () => {
-                    carousel.scrollBy({ left: -carousel.offsetWidth, behavior: 'smooth' });
-                };
-            }
-        });
-        
-        carouselNextBtns.forEach(btn => {
-            const carousel = btn.parentElement.querySelector('.carousel-container');
-            if (carousel) {
-                btn.onclick = () => {
-                    carousel.scrollBy({ left: carousel.offsetWidth, behavior: 'smooth' });
-                };
-            }
-        });
-        
-        // Reattach any other interactive elements as needed
-        console.log('🔗 Event listeners reattached to restored content');
-    } catch (error) {
-        console.error('❌ Error reattaching event listeners:', error);
-    }
-}
-
 function clearChatStorage() {
     try {
-        localStorage.removeItem('lotus-chat-content');
         localStorage.removeItem('lotus-chat-history');
         localStorage.removeItem('lotus-chat-session');
         console.log('🗑️ Chat storage cleared');

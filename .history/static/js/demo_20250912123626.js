@@ -114,41 +114,8 @@ function loadChatFromStorage() {
     }
 }
 
-// Function to reattach event listeners to restored content
-function reattachEventListeners() {
-    try {
-        // Reattach carousel navigation events
-        const carouselPrevBtns = chatMessages.querySelectorAll('.prev-btn');
-        const carouselNextBtns = chatMessages.querySelectorAll('.next-btn');
-        
-        carouselPrevBtns.forEach(btn => {
-            const carousel = btn.parentElement.querySelector('.carousel-container');
-            if (carousel) {
-                btn.onclick = () => {
-                    carousel.scrollBy({ left: -carousel.offsetWidth, behavior: 'smooth' });
-                };
-            }
-        });
-        
-        carouselNextBtns.forEach(btn => {
-            const carousel = btn.parentElement.querySelector('.carousel-container');
-            if (carousel) {
-                btn.onclick = () => {
-                    carousel.scrollBy({ left: carousel.offsetWidth, behavior: 'smooth' });
-                };
-            }
-        });
-        
-        // Reattach any other interactive elements as needed
-        console.log('🔗 Event listeners reattached to restored content');
-    } catch (error) {
-        console.error('❌ Error reattaching event listeners:', error);
-    }
-}
-
 function clearChatStorage() {
     try {
-        localStorage.removeItem('lotus-chat-content');
         localStorage.removeItem('lotus-chat-history');
         localStorage.removeItem('lotus-chat-session');
         console.log('🗑️ Chat storage cleared');
