@@ -26,7 +26,7 @@ if pgrep -f "gunicorn.*app2:app" > /dev/null; then
     echo "📊 Workers: 4"
     echo "📝 Access logs: logs/access.log"
     echo "📝 Error logs: logs/error.log"
-    echo "🔍 Process ID: $(pgrep -f 'gunicorn.*app2:app' | head -1)"
+    echo "🔍 Process ID: $(pgrep -f 'gunicorn.*app:app' | head -1)"
 else
     echo "❌ Failed to start server!"
     echo "📝 Check error logs: tail -f logs/error.log"
