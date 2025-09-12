@@ -1,0 +1,15 @@
+.env
+tools/__pycache__/product_search_tool.cpython-310.pyc
+__pycache__/chat.cpython-310.pyc
+tools/__pycache__/product_search_tool.cpython-311.pyc
+tools/search_vector.ipynb
+tools/__pycache__/get_nearby_store.cpython-310.pyc
+s
+tools/__pycache__/Product_details.cpython-310.pyc
+
+
+utiles/
+
+*pyc
+
+__pycache__/

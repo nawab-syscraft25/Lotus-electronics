@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Electronics - Lotus AI shopping Assistant</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/demo.css">
+</head>
+
+<body>
+    <div class="chat-main">
+        <!-- Main Landing Page -->
+        <div class="main-container" id="landingPage">
+            <div class="chat-bg"><img src="/static/images/chatbot.png"></div>
+            <div class="logo-section">
+                <h1 class="main-title">
+
+                    Meet Lotus AI
+                </h1>
+                <img src="/static/images/logo-chat.jpg">
+                <p class="subtitle">Lotus New Shopping AI</p>
+            </div>
+            <div class="search-container">
+                <form id="searchForm">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Ask a question"
+                        autocomplete="off" />
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-arrow-up"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <!-- Chat Overlay -->
+        <div class="chat-overlay" id="chatOverlay">
+            <div class="chat-bg chat-inner-bg"><img src="/static/images/chatbot.png"></div>
+            <div class="chat-container">
+                <!-- Chat Header -->
+                <div class="chat-header">
+                    <div class="chat-header-left">
+                         <img style="width: 15%; margin-right: 10px;" src="/static/images/lotus.png">
+                        <div>
+                            <h4 class="chat-title">Lotus AI Assistant</h4>
+                        </div>
+                    </div>
+                    <button class="close-btn" id="closeChat">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <!-- Chat Messages -->
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Messages will be added here -->
+                </div>
+                <!-- Typing Indicator -->
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="message-content">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat Input -->
+                <div class="chat-input-container">
+                    <form id="chatForm">
+                        <div class="chat-input-group">
+                            <input type="text" class="chat-input" id="chatInput"
+                                placeholder="Ask me anything about shopping..." autocomplete="off" />
+                            <button type="button" class="mic-btn" id="micButton" title="Start voice input">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                            <button type="button" class="speaker-btn" id="speakerButton" title="Read messages aloud">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <button type="submit" class="chat-send-btn">
+                                <i class="fas fa-arrow-up"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/demo.js"></script>
+</body>
+
+</html>
