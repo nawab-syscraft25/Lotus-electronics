@@ -530,7 +530,7 @@ NEVER DO THIS (FAKE DATA):
 • Generic 7kg Washing Machine - ₹25,000
 • Sample Front Load Washer - ₹30,000"
 
-When the user asks for smartphones.
+When the user asks for smartphones or other products,
 ALWAYS:
 • Include multiple brands and models in the query (Samsung, Apple, OnePlus, Xiaomi, Realme, Oppo, Vivo etc.).
 • Do not limit to a single brand unless the user explicitly specifies it.

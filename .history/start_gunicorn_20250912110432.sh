@@ -6,9 +6,20 @@ echo "🚀 Starting Lotus Electronics Chatbot API with Gunicorn..."
 # Create logs directory if it doesn't exist
 mkdir -p logs
 
+# Disable Hugging Face tokenizer parallelism warning
+export TOKENIZERS_PARALLELISM=false
 
+# Set environment variables for production
+export FLASK_ENV=production
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 
+# Calculate optimal worker count (CPU cores * 2 + 1)
+WORKERS=$(python -c "import multiprocessing; print(multiprocessing.cpu_count() * 2 + 1)")
+echo "📊 Using $WORKERS workers for optimal performance"
 
+# Kill any existing processes on port 8001
+echo "🔍 Checking for existing processes on port 8001..."
+lsof -ti:8001 | xargs kill -9 2>/dev/null || true
 
 # Run with Gunicorn for production (WSGI for Flask)
 nohup gunicorn -w 4 -b 0.0.0.0:8001 \
