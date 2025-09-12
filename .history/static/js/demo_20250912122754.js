@@ -1132,14 +1132,6 @@ closeChatBtn.addEventListener('click', function () {
     closeChat();
 });
 
-// Add event listener for new chat button
-const newChatBtn = document.getElementById('newChatBtn');
-if (newChatBtn) {
-    newChatBtn.addEventListener('click', function () {
-        newChat();
-    });
-}
-
 // Add event listeners for voice controls
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && chatOverlay.style.display === 'flex') {

@@ -23,84 +23,6 @@ function generateUUIDv4() {
 
 let sessionId = generateUUIDv4(); // generate a session id once per page load
 
-// Chat persistence functions
-function saveChatToStorage() {
-    try {
-        const messages = [];
-        const messageElements = chatMessages.querySelectorAll('.message');
-        
-        messageElements.forEach(messageEl => {
-            const isUser = messageEl.classList.contains('user');
-            const content = messageEl.querySelector('.message-content').innerHTML;
-            const time = messageEl.querySelector('.message-time').textContent;
-            
-            messages.push({
-                content: content,
-                isUser: isUser,
-                time: time
-            });
-        });
-        
-        localStorage.setItem('lotus-chat-history', JSON.stringify(messages));
-        localStorage.setItem('lotus-chat-session', sessionId);
-        console.log('💾 Chat saved to storage:', messages.length, 'messages');
-    } catch (error) {
-        console.error('❌ Error saving chat to storage:', error);
-    }
-}
-
-function loadChatFromStorage() {
-    try {
-        const savedMessages = localStorage.getItem('lotus-chat-history');
-        const savedSession = localStorage.getItem('lotus-chat-session');
-        
-        if (savedMessages && savedSession) {
-            const messages = JSON.parse(savedMessages);
-            sessionId = savedSession; // Restore the session ID
-            
-            // Clear current chat
-            chatMessages.innerHTML = '';
-            
-            // Restore messages
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.isUser ? 'user' : 'bot'}`;
-                
-                messageDiv.innerHTML = `
-                    <div class="message-content">
-                        ${msg.content}
-                    </div>
-                    <div class="message-time">
-                        ${msg.time}
-                    </div>
-                `;
-                
-                chatMessages.appendChild(messageDiv);
-            });
-            
-            if (messages.length > 0) {
-                scrollToBottom();
-                console.log('📥 Chat restored from storage:', messages.length, 'messages');
-                return true; // Indicate that chat was restored
-            }
-        }
-        return false; // No chat to restore
-    } catch (error) {
-        console.error('❌ Error loading chat from storage:', error);
-        return false;
-    }
-}
-
-function clearChatStorage() {
-    try {
-        localStorage.removeItem('lotus-chat-history');
-        localStorage.removeItem('lotus-chat-session');
-        console.log('🗑️ Chat storage cleared');
-    } catch (error) {
-        console.error('❌ Error clearing chat storage:', error);
-    }
-}
-
 // Speech recognition and synthesis variables - COMMENTED OUT FOR NEXT PHASE
 // let recognition = null;
 // let isListening = false;
@@ -154,8 +76,7 @@ function initializeVoice() {
 }
 */
 
-// Initialize speech recognition - COMMENTED OUT FOR NEXT PHASE
-/*
+// Initialize speech recognition
 function initializeSpeechRecognition() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -225,10 +146,8 @@ function initializeSpeechRecognition() {
         console.warn('Speech recognition not supported in this browser');
     }
 }
-*/
 
-// Text-to-speech function - COMMENTED OUT FOR NEXT PHASE
-/*
+// Text-to-speech function
 function speakText(text) {
     console.log('🔊 speakText called with:', text);
     console.log('🔊 isMuted:', isMuted);
@@ -268,10 +187,8 @@ function speakText(text) {
         startSpeech(cleanText);
     }
 }
-*/
 
-// Ensure consistent voice is set - COMMENTED OUT FOR NEXT PHASE
-/*
+// Ensure consistent voice is set
 function ensureVoiceSet(utterance) {
     if (!selectedVoice) {
         initializeVoice();
@@ -382,10 +299,8 @@ function startSpeech(text) {
         }
     }, 50);
 }
-*/
 
-// Start/stop speech recognition - COMMENTED OUT FOR NEXT PHASE
-/*
+// Start/stop speech recognition
 function toggleSpeechRecognition() {
     // Debounce rapid clicks
     const now = Date.now();
@@ -418,10 +333,8 @@ function toggleSpeechRecognition() {
         }
     }
 }
-*/
 
-// Update microphone button appearance - COMMENTED OUT FOR NEXT PHASE
-/*
+// Update microphone button appearance
 function updateMicButton() {
     const micBtn = document.getElementById('micButton');
     if (micBtn) {
@@ -550,7 +463,6 @@ function processVoiceQueue() {
         }, 100);
     }
 }
-*/
 
 function getCurrentTime() {
     return new Date().toLocaleTimeString([], {
@@ -575,8 +487,7 @@ function addMessage(content, isUser = false) {
     chatMessages.appendChild(messageDiv);
     scrollToBottom();
     
-    // Voice Assistant Mode: Auto-speak bot messages (with duplicate detection) - COMMENTED OUT FOR NEXT PHASE
-    /*
+    // Voice Assistant Mode: Auto-speak bot messages (with duplicate detection)
     if (!isUser && content && autoSpeak && !isMuted && speechSynthesis) {
         // Clean content for comparison
         const cleanContent = content.replace(/[📱💰🏷️✔️📦📍🎯🔍]/g, '').replace(/₹/g, 'rupees ').trim();
@@ -599,10 +510,6 @@ function addMessage(content, isUser = false) {
             console.log('🔇 Voice Assistant: Skipping duplicate message');
         }
     }
-    */
-    
-    // Auto-save chat after adding new message
-    saveChatToStorage();
 }
 
 function showTypingIndicator() {
@@ -636,26 +543,6 @@ function closeChat() {
     chatMessages.innerHTML = '';
     searchInput.focus();
     sessionId = generateUUIDv4(); // reset session when closing
-    clearChatStorage(); // Clear stored chat history when chat is closed
-}
-
-function newChat() {
-    // Clear current chat messages
-    chatMessages.innerHTML = '';
-    
-    // Generate new session ID
-    sessionId = generateUUIDv4();
-    
-    // Clear chat storage
-    clearChatStorage();
-    
-    // Focus on chat input to start new conversation
-    chatInput.focus();
-    
-    // Add a welcome message for new chat
-    addMessage("Hello! I'm your Lotus Electronics assistant. How can I help you today?", false);
-    
-    console.log('🆕 New chat started with session:', sessionId);
 }
 
 async function sendToBot(userMessage) {
@@ -1132,14 +1019,6 @@ closeChatBtn.addEventListener('click', function () {
     closeChat();
 });
 
-// Add event listener for new chat button
-const newChatBtn = document.getElementById('newChatBtn');
-if (newChatBtn) {
-    newChatBtn.addEventListener('click', function () {
-        newChat();
-    });
-}
-
 // Add event listeners for voice controls
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && chatOverlay.style.display === 'flex') {
@@ -1147,22 +1026,8 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// Initialize speech recognition when page loads - COMMENTED OUT FOR NEXT PHASE
+// Initialize speech recognition when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Restore chat history from storage on page load
-    const chatRestored = loadChatFromStorage();
-    if (chatRestored) {
-        // If chat was restored, show the chat overlay instead of landing page
-        chatOverlay.style.display = 'flex';
-        landingPage.style.display = 'none';
-        chatInput.focus();
-    } else {
-        // No chat to restore, show landing page
-        searchInput.focus();
-    }
-    
-    // Speech and voice functionality commented out for next phase
-    /*
     initializeSpeechRecognition();
     
     // Initialize voice selection
@@ -1200,7 +1065,6 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleTextToSpeech();
         });
     }
-    */
 });
 
-// searchInput.focus(); // Commented out - focus is now handled in DOMContentLoaded based on chat restore
+searchInput.focus();

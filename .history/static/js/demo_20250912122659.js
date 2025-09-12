@@ -639,25 +639,6 @@ function closeChat() {
     clearChatStorage(); // Clear stored chat history when chat is closed
 }
 
-function newChat() {
-    // Clear current chat messages
-    chatMessages.innerHTML = '';
-    
-    // Generate new session ID
-    sessionId = generateUUIDv4();
-    
-    // Clear chat storage
-    clearChatStorage();
-    
-    // Focus on chat input to start new conversation
-    chatInput.focus();
-    
-    // Add a welcome message for new chat
-    addMessage("Hello! I'm your Lotus Electronics assistant. How can I help you today?", false);
-    
-    console.log('🆕 New chat started with session:', sessionId);
-}
-
 async function sendToBot(userMessage) {
     showTypingIndicator();
 
@@ -1131,14 +1112,6 @@ chatForm.addEventListener('submit', function (e) {
 closeChatBtn.addEventListener('click', function () {
     closeChat();
 });
-
-// Add event listener for new chat button
-const newChatBtn = document.getElementById('newChatBtn');
-if (newChatBtn) {
-    newChatBtn.addEventListener('click', function () {
-        newChat();
-    });
-}
 
 // Add event listeners for voice controls
 document.addEventListener('keydown', function (e) {
