@@ -12,10 +12,12 @@ source /root/yes/bin/activate
 conda activate chatbot
 
 
-# Run with Gunicorn for production (WSGI for Flask) with SSL
+# Run with Gunicorn for production (WSGI for Flask)
+# Note: SSL certificates removed temporarily for troubleshooting
+# To re-enable SSL, add these parameters back to gunicorn:
+#   --keyfile=/etc/ssl/private/server.lotuselectronics.com.key \
+#   --certfile=/etc/ssl/certs/server.lotuselectronics.com.crt \
 nohup gunicorn -w 4 -b 0.0.0.0:8001 \
-  --keyfile=/etc/ssl/private/server.lotuselectronics.com.key \
-  --certfile=/etc/ssl/certs/server.lotuselectronics.com.crt \
   --access-logfile=logs/access.log \
   --error-logfile=logs/error.log \
   app2:app > gunicorn.log 2>&1 &
@@ -24,7 +26,7 @@ nohup gunicorn -w 4 -b 0.0.0.0:8001 \
 sleep 2
 if pgrep -f "gunicorn.*app2:app" > /dev/null; then
     echo "✅ Production server started successfully!"
-    echo "📍 Server running at: https://0.0.0.0:8001"
+    echo "📍 Server running at: http://0.0.0.0:8001"
     echo "📊 Workers: 4"
     echo "📝 Access logs: logs/access.log"
     echo "📝 Error logs: logs/error.log"

@@ -24,7 +24,7 @@ nohup gunicorn -w 4 -b 0.0.0.0:8001 \
 sleep 2
 if pgrep -f "gunicorn.*app2:app" > /dev/null; then
     echo "✅ Production server started successfully!"
-    echo "📍 Server running at: https://0.0.0.0:8001"
+    echo "📍 Server running at: http://0.0.0.0:8001"
     echo "📊 Workers: 4"
     echo "📝 Access logs: logs/access.log"
     echo "📝 Error logs: logs/error.log"
