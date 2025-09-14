@@ -13,6 +13,7 @@ from flask_cors import CORS
 from chat_gpt import chat_with_agent, redis_memory
 from tools.product_search_tool import ProductSearchTool
 from conversation_db import ConversationDB
+from memory_utils import MemoryTracker, check_memory_limit, log_memory_usage
 
 # Create Flask app
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -67,41 +68,52 @@ def health():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    payload = request.get_json(force=True)
-    message = payload.get("message")
-    session_id = payload.get("session_id", "default_session")
+    with MemoryTracker("chat_request"):
+        # Log initial memory usage
+        log_memory_usage("chat endpoint start")
+        
+        payload = request.get_json(force=True)
+        message = payload.get("message")
+        session_id = payload.get("session_id", "default_session")
 
-    if not message:
-        return jsonify({"error": "Missing 'message' in request"}), 400
+        if not message:
+            return jsonify({"error": "Missing 'message' in request"}), 400
 
-    try:
-        # Store the human message in conversation database
-        conversation_db.store_conversation(
-            session_id=session_id,
-            message_type="human",
-            message_content=message
-        )
-        
-        ai_reply = chat_with_agent(message, session_id)
-        data = json.loads(ai_reply)
-        
-        # Store the AI response in conversation database
-        conversation_db.store_conversation(
-            session_id=session_id,
-            message_type="ai",
-            message_content=data.get("answer", ""),
-            response_metadata=data
-        )
-        
-        return jsonify({"status": "success", "data": data})
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error: {e}")
-        conversation_db.store_log("ERROR", "chat_endpoint", f"JSON decode error: {e}", session_id)
-        return jsonify({"error": "Invalid JSON response from agent"}), 500
-    except Exception as e:
-        logger.exception("Error in chat_with_agent")
-        conversation_db.store_log("ERROR", "chat_endpoint", f"Error in chat_with_agent: {str(e)}", session_id)
-        return jsonify({"error": str(e)}), 500
+        try:
+            # Check memory before processing
+            check_memory_limit(limit_mb=700)  # 700MB limit
+            
+            # Store the human message in conversation database
+            conversation_db.store_conversation(
+                session_id=session_id,
+                message_type="human",
+                message_content=message
+            )
+            
+            log_memory_usage("after storing message")
+            
+            ai_reply = chat_with_agent(message, session_id)
+            data = json.loads(ai_reply)
+            
+            # Store the AI response in conversation database
+            conversation_db.store_conversation(
+                session_id=session_id,
+                message_type="ai",
+                message_content=data.get("answer", ""),
+                response_metadata=data
+            )
+            
+            log_memory_usage("after processing complete")
+            return jsonify({"status": "success", "data": data})
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
+            conversation_db.store_log("ERROR", "chat_endpoint", f"JSON decode error: {e}", session_id)
+            return jsonify({"error": "Invalid JSON response from agent"}), 500
+        except Exception as e:
+            logger.exception("Error in chat_with_agent")
+            conversation_db.store_log("ERROR", "chat_endpoint", f"Error in chat_with_agent: {str(e)}", session_id)
+            return jsonify({"error": str(e)}), 500
 
 
 # ---------- Admin Routes ---------- #

@@ -789,7 +789,7 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 llm = ChatOpenAI(
     model="gpt-4o-mini",  # fast + cost effective
     temperature=0,        # better accuracy & deterministic
-    max_retries=3,
+    max_retries=2,        # reduced from 3 to prevent memory issues
     api_key=openai_api_key,
 )
 
