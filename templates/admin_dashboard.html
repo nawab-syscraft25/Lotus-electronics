@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,26 +13,30 @@
             background: rgb(63, 164, 146);
             transition: transform 0.3s ease;
         }
+
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
             transition: all 0.3s;
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
             color: white;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 8px;
         }
+
         .main-content {
             background-color: #f8f9fa;
             min-height: 100vh;
         }
-        
+
         /* Mobile Toggle Button */
         .mobile-toggle {
             display: none;
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 42px;
+            left: 360px;
             z-index: 1001;
             background: rgb(63, 164, 146);
             color: white;
@@ -39,16 +44,16 @@
             border-radius: 8px;
             padding: 10px 15px;
             font-size: 18px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .mobile-toggle:hover {
             background: rgb(53, 144, 126);
             transform: translateY(-2px);
         }
-        
+
         /* Sidebar Overlay */
         .sidebar-overlay {
             display: none;
@@ -60,39 +65,40 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
         }
-        
+
         /* Responsive design */
         @media (max-width: 767px) {
             .mobile-toggle {
                 display: block;
             }
-            
+
             .sidebar {
                 position: fixed;
                 top: 0;
                 left: -100%;
                 width: 280px;
                 z-index: 1000;
-                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             }
-            
+
             .sidebar.show {
                 left: 0;
             }
-            
+
             .sidebar-overlay.show {
                 display: block;
             }
-            
+
             .main-content {
                 margin-left: 0;
                 padding-top: 80px;
             }
-            
+
             .sidebar {
                 margin-bottom: 20px;
             }
         }
+
         .stat-card {
             background: white;
             border-radius: 15px;
@@ -100,50 +106,62 @@
             transition: transform 0.3s;
             margin-bottom: 20px;
         }
+
         .stat-card:hover {
             transform: translateY(-5px);
         }
+
         .conversation-card {
             background: white;
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             margin-bottom: 10px;
         }
+
         .message-human {
             background-color: #e3f2fd;
             border-left: 4px solid #2196f3;
         }
+
         .message-ai {
             background-color: #f3e5f5;
             border-left: 4px solid #9c27b0;
         }
+
         .log-level-info {
             color: #ffffff;
         }
+
         .log-level-warning {
             color: #ffc107;
         }
+
         .log-level-error {
             color: #dc3545;
         }
+
         .log-level-critical {
             color: #721c24;
             font-weight: bold;
         }
+
         .navbar-brand {
             font-weight: bold;
             color: rgb(63, 164, 146);
         }
+
         .section-title {
             color: #495057;
             border-bottom: 2px solid #667eea;
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
+
         .table-responsive {
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .btn-custom {
             background: rgb(63, 164, 146);
             border: none;
@@ -152,20 +170,24 @@
             padding: 8px 20px;
             transition: all 0.3s;
         }
+
         .btn-custom:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             color: rgb(0, 0, 0);
         }
+
         .search-box {
             border-radius: 25px;
             border: 2px solid #e9ecef;
             transition: all 0.3s;
         }
+
         .search-box:focus {
             border-color: #667eea;
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
+
         .session-card {
             background: white;
             border-radius: 10px;
@@ -175,15 +197,18 @@
             cursor: pointer;
             border: 2px solid transparent;
         }
+
         .session-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             border-color: #667eea;
         }
+
         .session-card.active {
             border-color: #667eea;
             background-color: #f8f9ff;
         }
+
         .chat-message {
             margin-bottom: 15px;
             padding: 12px 15px;
@@ -191,6 +216,7 @@
             max-width: 85%;
             animation: slideIn 0.3s ease;
         }
+
         .chat-message.human {
             background: rgb(63, 164, 146);
             /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
@@ -198,127 +224,211 @@
             margin-left: auto;
             text-align: right;
         }
+
         .chat-message.ai {
             background-color: #f1f3f4;
             color: #333;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #3fa492;
         }
+
         .chat-timestamp {
             font-size: 0.75rem;
             opacity: 0.7;
             margin-top: 5px;
         }
+
         .chat-container {
             background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
         }
+
         @keyframes slideIn {
             from {
                 opacity: 0;
                 transform: translateY(10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
+
         .session-stats {
             display: flex;
             gap: 15px;
             font-size: 0.85rem;
             flex-wrap: wrap;
         }
+
         .session-stat {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .stat-card {
                 margin-bottom: 15px;
             }
-            
+
             .session-stats {
                 flex-direction: column;
                 gap: 8px;
             }
-            
+
             .d-flex.gap-2 {
                 flex-direction: column;
                 gap: 10px !important;
             }
-            
+
             .search-box {
                 width: 100% !important;
                 margin-bottom: 10px;
             }
-            
-            .btn-custom, .btn-outline-secondary {
+
+            .btn-custom,
+            .btn-outline-secondary {
                 width: 100%;
                 margin-bottom: 5px;
             }
-            
+
             .table-responsive {
                 font-size: 0.85rem;
             }
-            
+
             .modal-dialog {
                 margin: 10px;
                 max-width: calc(100% - 20px);
             }
-            
+
             .chat-container {
                 height: 400px !important;
             }
-            
+
             .navbar-brand {
                 font-size: 0.9rem;
             }
-            
+
             .section-title {
                 font-size: 1.2rem;
             }
         }
-        
+
+        .sidebar nav.nav.flex-column {
+            gap: 5px;
+        }
+
+        #recent-conversations .conversation-card {
+            margin-bottom: 20px !important;
+        }
+
+
+
         @media (max-width: 576px) {
             .stat-card {
                 text-align: center;
             }
-            
+
             .stat-card h3 {
                 font-size: 1.5rem;
             }
-            
-            .table th, .table td {
+
+            .table th,
+            .table td {
                 padding: 0.5rem;
                 font-size: 0.8rem;
             }
-            
+
             .chat-message {
                 max-width: 95%;
                 padding: 10px;
             }
-            
+
             .session-card {
                 padding: 15px !important;
             }
-            
+
             .modal-body {
                 padding: 15px;
             }
         }
+
+        .session-main i {
+            color: #3fa492;
+        }
+        .session-main .text-muted {
+            text-decoration: underline;
+        }
+
+        .session-main .badge {
+            background-color: #3fa492;
+        }
+        .session-main:hover{
+            border-color: #3fa492;
+        }
+
+
+        .default-csbutton,
+        .default-csbutton:hover
+         {
+            background-color: #3fa492;
+            color: #fff;
+        }
+
+        .stat-card p {
+            margin-bottom: 0px;
+        }
+        .conversations-search{
+            width: 50%;
+            border-radius: 8px;
+        }
+
+        .conversations-search-btn{
+            border-radius: 7px;
+
+        }
+        .conversations-table1 span.badge{
+            background-color: #3fa492 !important;
+
+        }
+
+        .conversations-table1 button.btn{
+            color: #fff;
+            background-color: #3fa492;
+            border: none;
+        }
+
+
+        /* .conversations-search{
+
+        } */
+        .log-filter button{
+            white-space: nowrap;
+            border-radius: 8px;
+
+        }
+        .system-log .table tbody td .badge {
+            background-color: #3fa492 !important;
+        }
+        .system-log .table tbody td .btn {
+            background-color: #3fa492 !important;
+            border: none;
+            color: #fff;
+        }
+
     </style>
 </head>
+
 <body>
     <!-- Mobile Toggle Button -->
     <button class="mobile-toggle" id="mobileToggle">
         <i class="fas fa-bars"></i>
     </button>
-    
+
     <!-- Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
+
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
@@ -329,7 +439,7 @@
                         Admin Panel
                     </h4>
                 </div>
-                
+
                 <nav class="nav flex-column">
                     <a class="nav-link active" href="#" data-section="dashboard">
                         <i class="fas fa-tachometer-alt me-2"></i> Dashboard
@@ -352,15 +462,15 @@
                     </a>
                 </nav>
             </div>
-            
+
             <!-- Main Content -->
             <div class="col-md-10 main-content p-4" id="mainContent">
                 <!-- Header -->
                 <nav class="navbar navbar-expand-lg navbar-light bg-white rounded shadow-sm mb-4">
                     <div class="container-fluid">
                         <span class="navbar-brand">
-                            <i class="fas fa-store me-2"></i>
-                            Lotus Electronics - Admin Dashboard
+                            <!-- <i class="fas fa-store me-2"></i> -->
+                            Lotus Electronics - Chatbot Dashboard
                         </span>
                         <span class="navbar-text">
                             Welcome, <strong id="admin-username">Admin</strong>
@@ -371,7 +481,7 @@
                 <!-- Dashboard Section -->
                 <div id="dashboard-section" class="content-section">
                     <h2 class="section-title">Dashboard Overview</h2>
-                    
+
                     <!-- Stats Cards -->
                     <div class="row mb-4">
                         <div class="col-lg-4 col-md-6 col-sm-12">
@@ -415,7 +525,7 @@
                 <!-- Users & Conversations Section -->
                 <div id="users-section" class="content-section" style="display: none;">
                     <h2 class="section-title">Chat Sessions & Conversations</h2>
-                    
+
                     <!-- Date Filters -->
                     <div class="card mb-4">
                         <div class="card-body">
@@ -489,18 +599,20 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Date filters for individual conversation -->
                                 <div class="card mb-3">
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-4">
                                                 <label class="form-label">Start Date</label>
-                                                <input type="date" class="form-control" id="modal-start-date" placeholder="Start Date">
+                                                <input type="date" class="form-control" id="modal-start-date"
+                                                    placeholder="Start Date">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">End Date</label>
-                                                <input type="date" class="form-control" id="modal-end-date" placeholder="End Date">
+                                                <input type="date" class="form-control" id="modal-end-date"
+                                                    placeholder="End Date">
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">&nbsp;</label>
@@ -508,7 +620,8 @@
                                                     <button class="btn btn-custom" onclick="filterModalConversation()">
                                                         <i class="fas fa-filter me-2"></i>Filter
                                                     </button>
-                                                    <button class="btn btn-outline-secondary ms-2" onclick="clearModalFilters()">
+                                                    <button class="btn btn-outline-secondary ms-2"
+                                                        onclick="clearModalFilters()">
                                                         <i class="fas fa-times me-2"></i>Clear
                                                     </button>
                                                 </div>
@@ -516,9 +629,10 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Chat Container -->
-                                <div class="chat-container" style="height: 500px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background-color: #f8f9fa;">
+                                <div class="chat-container"
+                                    style="height: 500px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; background-color: #f8f9fa;">
                                     <div id="user-conversation-content">
                                         <!-- Conversation messages will be loaded here -->
                                         <div class="text-center text-muted py-4">
@@ -529,7 +643,7 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-outline-primary" onclick="exportUserConversation()">
+                                <button type="button" class="btn default-csbutton" onclick="exportUserConversation()">
                                     <i class="fas fa-download me-2"></i>Export Chat
                                 </button>
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -540,11 +654,13 @@
 
                 <!-- All Conversations Section -->
                 <div id="conversations-section" class="content-section" style="display: none;">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+                    <div
+                        class="d-flex flex-column flex-md-row justify-content-between align-items-start-center mb-4 gap-3">
                         <h2 class="section-title mb-0">Conversations</h2>
-                        <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto">
-                            <input type="text" id="session-search" class="form-control search-box" placeholder="Search by Session ID..." style="min-width: 250px;">
-                            <button class="btn btn-custom" onclick="loadConversations()">
+                        <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto justify-content-end align-items-center ">
+                            <input type="text" id="session-search" class="form-control search-box conversations-search"
+                                placeholder="Search by Session ID...">
+                            <button class="btn btn-custom conversations-search-btn" onclick="loadConversations()">
                                 <i class="fas fa-search"></i> Search
                             </button>
                             <button class="btn btn-outline-secondary" onclick="exportConversations()">
@@ -552,9 +668,9 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped">
+                        <table class="table table-hover table-striped conversations-table1">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Session ID</th>
@@ -570,7 +686,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Pagination -->
                     <nav aria-label="Conversations pagination">
                         <ul class="pagination justify-content-center" id="conversations-pagination">
@@ -580,10 +696,11 @@
                 </div>
 
                 <!-- Logs Section -->
-                <div id="logs-section" class="content-section" style="display: none;">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+                <div id="logs-section" class="content-section system-log" style="display: none;">
+                    <div
+                        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
                         <h2 class="section-title mb-0">System Logs</h2>
-                        <div class="d-flex flex-column flex-md-row gap-2">
+                        <div class="d-flex flex-column flex-md-row gap-2 log-filter">
                             <select id="log-level-filter" class="form-select" style="min-width: 150px;">
                                 <option value="">All Levels</option>
                                 <option value="INFO">INFO</option>
@@ -599,7 +716,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="table-responsive">
                         <table class="table table-hover table-striped">
                             <thead class="table-dark">
@@ -617,7 +734,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Pagination -->
                     <nav aria-label="Logs pagination">
                         <ul class="pagination justify-content-center" id="logs-pagination">
@@ -629,7 +746,7 @@
                 <!-- Analytics Section -->
                 <div id="analytics-section" class="content-section" style="display: none;">
                     <h2 class="section-title">Analytics</h2>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card">
@@ -690,44 +807,44 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/js/admin-dashboard.js"></script>
-    
+
     <script>
         // Mobile toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const mobileToggle = document.getElementById('mobileToggle');
             const sidebar = document.getElementById('sidebar');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
-            
+
             // Toggle sidebar
             function toggleSidebar() {
                 sidebar.classList.toggle('show');
                 sidebarOverlay.classList.toggle('show');
                 document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : 'auto';
             }
-            
+
             // Close sidebar
             function closeSidebar() {
                 sidebar.classList.remove('show');
                 sidebarOverlay.classList.remove('show');
                 document.body.style.overflow = 'auto';
             }
-            
+
             // Event listeners
             mobileToggle.addEventListener('click', toggleSidebar);
             sidebarOverlay.addEventListener('click', closeSidebar);
-            
+
             // Close sidebar when clicking nav links on mobile
             const navLinks = sidebar.querySelectorAll('.nav-link[data-section]');
             navLinks.forEach(link => {
-                link.addEventListener('click', function() {
+                link.addEventListener('click', function () {
                     if (window.innerWidth <= 767) {
                         closeSidebar();
                     }
                 });
             });
-            
+
             // Handle window resize
-            window.addEventListener('resize', function() {
+            window.addEventListener('resize', function () {
                 if (window.innerWidth > 767) {
                     closeSidebar();
                 }
@@ -735,4 +852,5 @@
         });
     </script>
 </body>
+
 </html>

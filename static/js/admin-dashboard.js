@@ -187,14 +187,14 @@ class AdminDashboard {
         container.innerHTML = '';
         users.forEach(user => {
             const sessionCard = document.createElement('div');
-            sessionCard.className = 'session-card p-3';
+            sessionCard.className = 'session-card p-3 session-main';
             sessionCard.onclick = () => this.viewUserConversation(user.session_id);
             
             sessionCard.innerHTML = `
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h6 class="mb-2">
-                            <i class="fas fa-comments me-2 text-primary"></i>
+                            <i class="fas fa-comments me-2"></i>
                             Session: <code>${user.session_id.substring(0, 12)}...</code>
                         </h6>
                         ${user.user_phone ? `<div class="text-muted mb-2"><i class="fas fa-phone me-2"></i>${user.user_phone}</div>` : ''}
@@ -214,7 +214,7 @@ class AdminDashboard {
                         </div>
                     </div>
                     <div class="text-end">
-                        <div class="badge bg-primary rounded-pill mb-2">
+                        <div class="badge  rounded-pill mb-2">
                             ${user.message_count} msgs
                         </div>
                         <div class="text-muted small">
