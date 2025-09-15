@@ -82,12 +82,14 @@ class ProductSearchTool:
             # Query Pinecone vector database
             response = self.index.query(
                 vector=query_vec,
-                top_k=top_k * 3,  # Get more results for price filtering
+                top_k=top_k * 10,  # Get many more results for better diversity
                 include_metadata=True
             )
             
-            # Filter and format results
+            # Filter and format results with brand diversity
             results = []
+            brand_counts = {}  # Track brands to ensure diversity
+            
             for match in response.matches:
                 metadata = match.metadata or {}
                 
@@ -95,6 +97,28 @@ class ProductSearchTool:
                 product_name = metadata.get("product_name", "").strip()
                 if not product_name or product_name.lower() in ['unknown', 'n/a', 'null']:
                     continue
+                
+                # Extract brand from product name for diversity
+                brand = "Unknown"
+                product_name_lower = product_name.lower()
+                if any(b in product_name_lower for b in ['samsung']):
+                    brand = "Samsung"
+                elif any(b in product_name_lower for b in ['oneplus', 'one plus']):
+                    brand = "OnePlus"
+                elif any(b in product_name_lower for b in ['xiaomi', 'redmi', 'mi ']):
+                    brand = "Xiaomi"
+                elif any(b in product_name_lower for b in ['oppo']):
+                    brand = "Oppo"
+                elif any(b in product_name_lower for b in ['vivo']):
+                    brand = "Vivo"
+                elif any(b in product_name_lower for b in ['iphone', 'apple']):
+                    brand = "Apple"
+                elif any(b in product_name_lower for b in ['nothing']):
+                    brand = "Nothing"
+                elif any(b in product_name_lower for b in ['realme']):
+                    brand = "Realme"
+                elif any(b in product_name_lower for b in ['motorola']):
+                    brand = "Motorola"
                 
                 # Extract and validate price
                 try:
@@ -110,12 +134,17 @@ class ProductSearchTool:
                 if price_max is not None and price_val > price_max:
                     continue
                 
+                # Enforce brand diversity - limit each brand to max 2 products
+                if brand_counts.get(brand, 0) >= 2:
+                    continue
+                
                 # Format result
                 product = {
                     "id": match.id,
                     "product_id": metadata.get("product_id", match.id),
                     "score": round(match.score, 4),
                     "product_name": product_name,
+                    "brand": brand,
                     "sku": metadata.get("sku", "N/A"),
                     "price": price_val,
                     "url": metadata.get("url", "").strip(),
@@ -123,6 +152,9 @@ class ProductSearchTool:
                     "description": metadata.get("text", "")[:200] + "..." if metadata.get("text", "") else ""
                 }
                 results.append(product)
+                
+                # Update brand count for diversity
+                brand_counts[brand] = brand_counts.get(brand, 0) + 1
                 
                 # Stop when we have enough results
                 if len(results) >= top_k:
