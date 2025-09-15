@@ -732,6 +732,9 @@ async function sendToBot(userMessage) {
         const data = await response.json();
         hideTypingIndicator();
 
+        // Reset retry count on successful response
+        resetRetryCount();
+
 
         if (data?.status === "success" && data.data) {
             const botData = data.data;
@@ -832,6 +835,76 @@ async function sendToBot(userMessage) {
         } else {
             addMessage("Sorry, I couldn’t process your request. Please try again.", false);
         }
+    } catch (error) {
+        hideTypingIndicator();
+        console.error("Error in sendToBot:", error);
+        
+        // Handle different types of errors
+        let errorMessage = "Sorry, something went wrong. ";
+        
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            errorMessage += "Please check your internet connection and try again.";
+        } else if (error.message.includes('timeout')) {
+            errorMessage += "The request timed out. Please try again.";
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage += "Unable to connect to the server. Please try again.";
+        } else {
+            errorMessage += "Please try again in a moment.";
+        }
+        
+        addMessage(errorMessage, false);
+        
+        // Show retry button
+        showRetryButton(userMessage);
+    }
+}
+
+// Show retry button for failed requests
+function showRetryButton(lastMessage) {
+    const retryDiv = document.createElement('div');
+    retryDiv.className = 'retry-container';
+    retryDiv.innerHTML = `
+        <button class="retry-btn" onclick="retryLastMessage('${lastMessage.replace(/'/g, "\\'")}')">
+            <i class="fas fa-redo"></i> Retry
+        </button>
+    `;
+    
+    const chatBody = document.getElementById('chat-body');
+    chatBody.appendChild(retryDiv);
+    scrollToBottom();
+}
+
+// Global variables for retry functionality
+let retryCount = 0;
+let maxRetries = 3;
+
+// Retry the last message with exponential backoff
+async function retryLastMessage(message) {
+    if (retryCount >= maxRetries) {
+        addMessage("Maximum retry attempts reached. Please try again later.", false);
+        return;
+    }
+    
+    retryCount++;
+    
+    // Remove existing retry buttons
+    const retryContainers = document.querySelectorAll('.retry-container');
+    retryContainers.forEach(container => container.remove());
+    
+    // Calculate delay with exponential backoff (1s, 2s, 4s)
+    const delay = Math.pow(2, retryCount - 1) * 1000;
+    
+    addMessage(`Retrying in ${delay/1000} second${delay > 1000 ? 's' : ''}...`, false);
+    
+    setTimeout(() => {
+        sendToBot(message);
+    }, delay);
+}
+
+// Reset retry count on successful response
+function resetRetryCount() {
+    retryCount = 0;
+}
 
 // Render product comparison table
 function renderComparisonTable(comparison) {
@@ -962,13 +1035,6 @@ function renderComparisonTable(comparison) {
     scrollToBottom();
     
     console.log("🔧 Comparison table rendered successfully");
-}
-
-    } catch (error) {
-        hideTypingIndicator();
-        addMessage("⚠ Connection error. Please try again later.", false);
-        console.error("Chat API Error:", error);
-    }
 }
 
 // Render product carousel

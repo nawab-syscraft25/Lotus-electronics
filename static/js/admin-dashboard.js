@@ -97,13 +97,9 @@ class AdminDashboard {
                 document.getElementById('total-conversations').textContent = stats.total_conversations;
                 document.getElementById('total-sessions').textContent = stats.total_sessions;
                 document.getElementById('today-conversations').textContent = stats.today_conversations;
-                document.getElementById('error-logs-today').textContent = stats.error_logs_today;
                 
                 // Load recent conversations
                 this.loadRecentConversations();
-                
-                // Load recent errors
-                this.loadRecentErrors();
             }
         } catch (error) {
             console.error('Error loading dashboard data:', error);
@@ -148,43 +144,6 @@ class AdminDashboard {
             }
         } catch (error) {
             console.error('Error loading recent conversations:', error);
-        }
-    }
-    
-    async loadRecentErrors() {
-        try {
-            const response = await fetch('/admin/api/logs?level=ERROR&limit=5');
-            const data = await response.json();
-            
-            if (data.success) {
-                const container = document.getElementById('recent-errors');
-                container.innerHTML = '';
-                
-                data.logs.forEach(log => {
-                    const div = document.createElement('div');
-                    div.className = 'conversation-card p-3 mb-2 border-start border-danger';
-                    div.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="d-flex align-items-center mb-1">
-                                    <i class="fas fa-exclamation-triangle text-danger me-2"></i>
-                                    <strong class="text-danger">${log.level}</strong>
-                                    <small class="text-muted ms-2">${log.logger_name}</small>
-                                </div>
-                                <p class="mb-1">${this.truncateText(log.message, 100)}</p>
-                                <small class="text-muted">${this.formatTimestamp(log.timestamp)}</small>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(div);
-                });
-                
-                if (data.logs.length === 0) {
-                    container.innerHTML = '<p class="text-muted text-center">No recent errors</p>';
-                }
-            }
-        } catch (error) {
-            console.error('Error loading recent errors:', error);
         }
     }
     
@@ -303,7 +262,16 @@ class AdminDashboard {
                 // Update session info
                 if (data.conversation.length > 0) {
                     const firstMessage = data.conversation[0];
-                    document.getElementById('session-phone').textContent = firstMessage.user_phone || 'N/A';
+                    
+                    // Extract phone number from conversation messages
+                    let phoneNumber = firstMessage.user_phone || 'N/A';
+                    
+                    // If no phone in metadata, look for phone number in messages
+                    if (phoneNumber === 'N/A') {
+                        phoneNumber = this.extractPhoneFromMessages(data.conversation);
+                    }
+                    
+                    document.getElementById('session-phone').textContent = phoneNumber;
                     document.getElementById('session-message-count').textContent = data.conversation.length;
                 }
             } else {
@@ -334,7 +302,7 @@ class AdminDashboard {
             
             messageDiv.innerHTML = `
                 <div class="message-content">${messageContent}</div>
-                <div class="chat-timestamp">${this.formatTimestamp(message.timestamp)}</div>
+                <div class="chat-timestamp">${this.formatTimestamp(message.timestamp || message.created_at)}</div>
             `;
             
             container.appendChild(messageDiv);
@@ -671,7 +639,10 @@ class AdminDashboard {
     }
     
     formatTimestamp(timestamp) {
-        return new Date(timestamp).toLocaleString();
+        // Add 5.5 hours (5 hours 30 minutes) to adjust for server timezone difference
+        const date = new Date(timestamp);
+        const adjustedDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5.5 hours in milliseconds
+        return adjustedDate.toLocaleString();
     }
     
     getLogLevelClass(level) {
@@ -714,6 +685,57 @@ class AdminDashboard {
         setTimeout(() => {
             document.body.removeChild(toast);
         }, 5000);
+    }
+    
+    // Extract phone number from conversation messages
+    extractPhoneFromMessages(messages) {
+        // Look for phone number patterns in user messages
+        const phoneRegex = /^[6-9]\d{9}$/; // Indian phone number pattern (10 digits starting with 6-9)
+        const phoneRegexWithCode = /^(?:\+91|91)?[6-9]\d{9}$/; // With country code
+        const phoneInTextRegex = /(?:\+91|91)?([6-9]\d{9})/; // Phone number within text
+        
+        // Check first few user messages (phone number is usually in first 2-3 messages)
+        const userMessages = messages.filter(msg => 
+            msg.message_type === 'human' || 
+            msg.message_type === 'user' || 
+            msg.type === 'human' ||
+            msg.type === 'user'
+        ).slice(0, 5); // Check first 5 user messages
+        
+        for (let message of userMessages) {
+            // Handle different possible message content fields
+            let text = '';
+            
+            if (message.message_content) {
+                text = message.message_content.toString().trim();
+            } else if (message.message) {
+                text = message.message.toString().trim();
+            } else if (message.content) {
+                text = message.content.toString().trim();
+            } else if (message.text) {
+                text = message.text.toString().trim();
+            } else {
+                continue;
+            }
+            
+            // Check if the entire message is a phone number
+            if (phoneRegex.test(text)) {
+                return text;
+            }
+            
+            if (phoneRegexWithCode.test(text)) {
+                const cleanedPhone = text.replace(/^(?:\+91|91)/, '');
+                return cleanedPhone; // Remove country code if present
+            }
+            
+            // Look for phone numbers within the message text
+            const phoneMatch = text.match(phoneInTextRegex);
+            if (phoneMatch) {
+                return phoneMatch[1]; // Return the captured group (without country code)
+            }
+        }
+        
+        return 'N/A';
     }
 }
 

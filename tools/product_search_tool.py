@@ -151,6 +151,7 @@ class ProductSearchTool:
                     "image_url": metadata.get("image_url", "").strip(),
                     "description": metadata.get("text", "")[:200] + "..." if metadata.get("text", "") else ""
                 }
+                
                 results.append(product)
                 
                 # Update brand count for diversity
@@ -228,12 +229,43 @@ class ProductSearchTool:
                 if product_id:
                     product_url = f"https://www.lotuselectronics.com/product/{product.get('url')}/{product_id}"
             
+            # Validate and fix image URL if needed
+            original_image_url = product.get('image_url', '')
+            product_image_url = original_image_url
+            
+            # If no image URL, generate one using product ID
+            if not product_image_url and product.get('product_id'):
+                product_id_str = str(product.get('product_id', ''))
+                if product_id_str.isdigit():
+                    product_image_url = f"https://cdn.lotuselectronics.com/webpimages/{product_id_str}IM.webp"
+                    print(f"🖼️  Generated image URL for product {product_id_str}: {product_image_url}")
+            
+            # Add category validation to catch mismatched products
+            product_name_lower = product['product_name'].lower()
+            query_lower = query.lower()
+            
+            # Check for category mismatches (e.g., asking for smartphones but getting washing machines)
+            smartphone_keywords = ['smartphone', 'mobile', 'phone', 'android', 'iphone', 'oneplus', 'samsung galaxy', 'oppo', 'vivo', 'xiaomi']
+            washing_machine_keywords = ['washing machine', 'washer', 'laundry']
+            laptop_keywords = ['laptop', 'notebook', 'computer']
+            tv_keywords = ['tv', 'television', 'led tv', 'smart tv']
+            
+            is_query_for_smartphones = any(keyword in query_lower for keyword in smartphone_keywords)
+            is_product_washing_machine = any(keyword in product_name_lower for keyword in washing_machine_keywords)
+            
+            if is_query_for_smartphones and is_product_washing_machine:
+                print(f"🚨 CATEGORY MISMATCH DETECTED:")
+                print(f"   Query: '{query}' (smartphone search)")
+                print(f"   Product: '{product['product_name']}' (washing machine)")
+                print(f"   Skipping this product due to category mismatch")
+                continue  # Skip this product
+            
             products.append({
                 "product_id":product.get('product_id') or product.get('id', ''),
                 "product_name": product['product_name'],
                 "product_mrp": f"₹{product['price']:,.0f}",
                 "product_url": product_url,
-                "product_image": product.get('image_url', ''),
+                "product_image": product_image_url,
                 "features": features[:4]
             })
         

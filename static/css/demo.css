@@ -893,3 +893,49 @@ body {
         right: 4px;
     }
 }
+
+/* Retry Button Styles */
+.retry-container {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0;
+    padding: 8px;
+}
+
+.retry-btn {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.retry-btn:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.retry-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.retry-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.retry-btn i {
+    font-size: 12px;
+}
