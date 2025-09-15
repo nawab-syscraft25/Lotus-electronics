@@ -477,9 +477,40 @@ STEP 4: NEVER generate additional products beyond what the tool returned
 
 Examples of REQUIRED tool calls:
 - "laptops" → MUST call search_products("laptops")
-- "smartphones under 30000" → MUST call search_products("smartphones under 30000")  
+- "smartphones under 30000" → MUST call search_products("smartphones", price_max=30000)  
 - "gaming laptops" → MUST call search_products("gaming laptops")
 - "tell me more about this iPhone" → MUST call get_filtered_product_details_tool
+
+🚨 CRITICAL PRICE PARSING RULES:
+When user mentions ANY price requirement, you MUST use price_min and price_max parameters in search_products:
+
+PRICE PARSING EXAMPLES:
+- "above 45k" or "above 45000" → search_products("smartphones", price_min=45000)
+- "under 30k" or "below 30000" → search_products("smartphones", price_max=30000)
+- "between 20k and 50k" → search_products("smartphones", price_min=20000, price_max=50000)
+- "around 40k" or "near 40000" → search_products("smartphones", price_min=35000, price_max=45000)
+- "smartphones above 45k" → search_products("smartphones", price_min=45000)
+- "laptops under 80k" → search_products("laptops", price_max=80000)
+
+PRICE CONVERSION RULES:
+- "k" means thousands: 45k = 45000, 30k = 30000
+- "lakh" means 100000: 1 lakh = 100000, 2.5 lakh = 250000
+- "above X" means price_min=X
+- "under/below X" means price_max=X
+- "around X" means price_min=X-5000, price_max=X+5000
+
+🚨 BRAND DIVERSITY SEARCH STRATEGY:
+To ensure diverse brand results, use these optimized search queries:
+
+SMARTPHONE SEARCH QUERIES:
+- "smartphones" or "mobile phones" → Gets diverse brands (Samsung, OnePlus, Xiaomi, Oppo, Vivo, iPhone, Nothing, etc.)
+- "android smartphones" → For Android devices across all brands
+- "premium smartphones" → For high-end devices from various brands
+- "budget smartphones" → For affordable options from multiple brands
+
+NEVER use brand-specific terms in general searches unless user specifically asks for a brand:
+❌ WRONG: search_products("Samsung smartphones") when user just says "smartphones"
+✅ CORRECT: search_products("smartphones") to get all brands
 
 Examples of NO tool calls needed:
 - "compare first and third laptop" → Use previous laptop search results, create comparison directly
@@ -779,6 +810,9 @@ llm = ChatGoogleGenerativeAI(
     temperature=0,
     max_retries=3,
     google_api_key=google_api_key,
+    # Enhanced configuration for better error handling
+    max_tokens=4000,  # Limit response length
+    timeout=30,  # 30 second timeout
 )
 
 
@@ -825,6 +859,42 @@ def call_tool(state: AgentState):
     print(f"🎯 Returning {len(outputs)} tool message(s)")
     return {"messages": outputs}
 
+def estimate_token_count(text: str) -> int:
+    """
+    Rough estimation of token count for text.
+    Gemini uses different tokenization but this gives a rough estimate.
+    """
+    if not text:
+        return 0
+    # Rough estimate: 1 token ≈ 4 characters for most models
+    return len(str(text)) // 4
+
+def truncate_conversation(messages: list, max_tokens: int = 12000) -> list:
+    """
+    Truncate conversation to fit within token limits while preserving recent context.
+    Keep the most recent messages and important context.
+    """
+    if not messages:
+        return messages
+    
+    # Calculate total tokens
+    total_tokens = sum(estimate_token_count(getattr(msg, 'content', '')) for msg in messages)
+    
+    if total_tokens <= max_tokens:
+        return messages
+    
+    print(f"🔧 Conversation too long ({total_tokens} tokens), truncating to fit {max_tokens} tokens")
+    
+    # Keep the last 10 messages (most recent context)
+    # This preserves immediate conversation flow
+    truncated_messages = messages[-10:] if len(messages) > 10 else messages
+    
+    # Verify we're within limits
+    truncated_tokens = sum(estimate_token_count(getattr(msg, 'content', '')) for msg in truncated_messages)
+    print(f"🔧 Truncated to {len(truncated_messages)} messages ({truncated_tokens} tokens)")
+    
+    return truncated_messages
+
 def call_model(
     state: AgentState,
     config: RunnableConfig,
@@ -841,6 +911,24 @@ def call_model(
     
     # Get the current conversation messages from state
     messages = state["messages"]
+    
+    # Input validation to prevent BadRequestError
+    if not messages:
+        print("⚠️ No messages in state, creating default response")
+        from langchain_core.messages import AIMessage
+        default_response = AIMessage(content=json.dumps({
+            "answer": "Hello! I'm your Lotus Electronics assistant. How can I help you today?",
+            "end": "Ask me about our products, stores, or any questions you have!"
+        }))
+        return {"messages": [default_response]}
+    
+    # Validate message content
+    for i, msg in enumerate(messages):
+        if hasattr(msg, 'content') and msg.content:
+            # Check for extremely long content that might cause issues
+            if len(str(msg.content)) > 10000:
+                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
+                msg.content = str(msg.content)[:10000] + "... [truncated]"
     
     # Get the latest user message for debugging
     latest_user_message = None
@@ -925,6 +1013,15 @@ CRITICAL: You MUST use tools when appropriate. Do NOT generate fake product data
     
     print(f"📝 Call_model filtered sequence: {[msg.type for msg in filtered_messages]}")
     
+    # Apply token management to prevent API errors
+    filtered_messages = truncate_conversation(filtered_messages, max_tokens=12000)
+    
+    # Estimate total tokens for debugging
+    total_tokens = estimate_token_count(dynamic_system_prompt) + sum(
+        estimate_token_count(getattr(msg, 'content', '')) for msg in filtered_messages
+    )
+    print(f"🔧 Estimated total tokens: {total_tokens}")
+    
     # Use only the filtered messages with system prompt
     messages_with_system = [SystemMessage(content=dynamic_system_prompt)] + filtered_messages
     
@@ -973,10 +1070,39 @@ CRITICAL: You MUST use tools when appropriate. Do NOT generate fake product data
         import traceback
         print(f"❌ Full traceback: {traceback.format_exc()}")
         
+        # Enhanced error handling with specific error types
+        error_message = "I encountered a technical issue"
+        
+        # Handle specific error types
+        if "BadRequestError" in str(type(e)) or "400" in str(e):
+            print("🔍 BadRequestError detected - API request issue")
+            error_message = "There was an issue with the request format. Let me try a different approach"
+        elif "RateLimitError" in str(type(e)) or "429" in str(e):
+            print("🔍 Rate limit exceeded")
+            error_message = "I'm receiving too many requests right now. Please try again in a moment"
+        elif "AuthenticationError" in str(type(e)) or "401" in str(e):
+            print("🔍 Authentication error")
+            error_message = "There's an authentication issue. Please contact support"
+        elif "timeout" in str(e).lower():
+            print("🔍 Timeout error")
+            error_message = "The request took too long. Please try asking again"
+        elif "connection" in str(e).lower():
+            print("🔍 Connection error")
+            error_message = "I'm having connectivity issues. Please try again"
+        else:
+            print("🔍 Generic error")
+            error_message = "I encountered an unexpected issue. Please try rephrasing your question"
+        
         # Create a simple error response
         from langchain_core.messages import AIMessage
         error_response = AIMessage(content=json.dumps({
-            "answer": f"I'm sorry, I encountered an error while processing your request. Error: {type(e).__name__}. Please try again.",
+            "answer": f"I'm sorry, {error_message}. Please try again.",
+            "products": [],
+            "product_details": {},
+            "stores": [],
+            "policy_info": {},
+            "comparison": {},
+            "authentication": {"required": False, "step": "verified", "message": ""},
             "end": "How else can I help you with Lotus Electronics products?"
         }))
         return {"messages": [error_response]}
@@ -2029,6 +2155,24 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
             "end": "Is there anything else I can help you with from our electronics collection?"
         }
         return json.dumps(error_response, ensure_ascii=False, indent=2)
+
+def monitor_memory_usage():
+    """Monitor memory usage and log warnings if approaching limits."""
+    try:
+        import psutil
+        memory = psutil.virtual_memory()
+        memory_percent = memory.percent
+        
+        if memory_percent > 85:
+            print(f"⚠️  High memory usage: {memory_percent:.1f}%")
+            # Force garbage collection
+            import gc
+            gc.collect()
+            print("🧹 Performed garbage collection")
+    except ImportError:
+        pass  # psutil not available
+    except Exception as e:
+        print(f"⚠️  Memory monitoring error: {e}")
 
 # Main execution - only run when script is executed directly
 if __name__ == "__main__":

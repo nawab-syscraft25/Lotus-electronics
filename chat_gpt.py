@@ -515,6 +515,18 @@ Examples of NO tool calls needed:
 - "compare first and third laptop" → Use previous laptop search results, create comparison directly
 - "compare these smartphones" → Use previous smartphone results, create comparison directly
 - "show me comparison between first and last product" → Use previous results, create comparison
+- "other options" or "more options" → Use existing search results, don't call tools again
+- "more" after showing products → Suggest alternatives from existing results or different features
+
+🚨 HANDLING "OTHER OPTIONS" REQUESTS:
+When user asks for "other options", "more options", or "more":
+1. DO NOT call search_products again if you already showed products
+2. Instead, suggest different aspects of existing products or alternative categories
+3. Only call search_products if user specifically mentions a NEW product category or brand
+
+EXAMPLES:
+❌ WRONG: User sees OnePlus phones → asks "other options" → call search_products("OnePlus") again
+✅ CORRECT: User sees OnePlus phones → asks "other options" → suggest different price ranges, other brands, or features from previous results
 
 🚨 TOPIC CHANGE HANDLING:
 - If user asks for a DIFFERENT product category (e.g., smartphones after washing machines), IMMEDIATELY search for the NEW category
@@ -920,17 +932,33 @@ def call_model(
         from langchain_core.messages import AIMessage
         default_response = AIMessage(content=json.dumps({
             "answer": "Hello! I'm your Lotus Electronics assistant. How can I help you today?",
-            "end": "Ask me about our products, stores, or any questions you have!"
+            "products": [],
+            "product_details": {},
+            "stores": [],
+            "policy_info": {},
+            "comparison": {},
+            "authentication": {"required": True, "step": "phone", "message": "Please provide your phone number"},
+            "end": "What's your phone number?"
         }))
         return {"messages": [default_response]}
     
-    # Validate message content
+    print(f"🔍 Processing {len(messages)} messages from state")
+    
+    # Validate message content before processing
     for i, msg in enumerate(messages):
         if hasattr(msg, 'content') and msg.content:
             # Check for extremely long content that might cause issues
             if len(str(msg.content)) > 10000:
                 print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
                 msg.content = str(msg.content)[:10000] + "... [truncated]"
+        elif hasattr(msg, 'content'):
+            # Handle empty or None content
+            if msg.content is None or str(msg.content).strip() == "":
+                print(f"⚠️ Message {i} has empty content, setting default")
+                if hasattr(msg, 'type') and msg.type == 'human':
+                    msg.content = "Hello"
+                elif hasattr(msg, 'type') and msg.type == 'ai':
+                    msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
     
     # Get the latest user message for debugging
     latest_user_message = None
@@ -998,13 +1026,70 @@ CRITICAL: Based on authentication status:
                     filtered_messages.append(msg)
                     last_type = msg.type
     else:
-        # OpenAI: Keep all messages but ensure proper tool call flow
-        for msg in messages:
-            if hasattr(msg, 'type'):
-                # For OpenAI, keep all message types including tool messages
+        # OpenAI: Ensure proper tool call sequence
+        expecting_tool_response = False
+        pending_tool_call_ids = set()
+        
+        for i, msg in enumerate(messages):
+            if not hasattr(msg, 'type'):
+                continue
+                
+            print(f"🔍 Processing message {i}: type={msg.type}")
+            
+            # Handle AI messages with tool calls
+            if msg.type == 'ai' and hasattr(msg, 'tool_calls') and msg.tool_calls:
+                print(f"🔧 AI message has {len(msg.tool_calls)} tool calls")
                 filtered_messages.append(msg)
+                expecting_tool_response = True
+                pending_tool_call_ids = {tc['id'] for tc in msg.tool_calls}
+                
+            # Handle tool response messages
+            elif msg.type == 'tool':
+                if expecting_tool_response and hasattr(msg, 'tool_call_id'):
+                    print(f"🔧 Tool response for call_id: {msg.tool_call_id}")
+                    filtered_messages.append(msg)
+                    pending_tool_call_ids.discard(msg.tool_call_id)
+                    if not pending_tool_call_ids:
+                        expecting_tool_response = False
+                else:
+                    print(f"⚠️ Skipping orphaned tool message")
+                    
+            # Handle other message types
+            elif msg.type in ['human', 'ai']:
+                # If we were expecting tool responses, create dummy responses
+                if expecting_tool_response and pending_tool_call_ids:
+                    print(f"⚠️ Creating dummy tool responses for {len(pending_tool_call_ids)} pending calls")
+                    from langchain_core.messages import ToolMessage
+                    for tool_call_id in pending_tool_call_ids:
+                        dummy_response = ToolMessage(
+                            content="Tool execution completed",
+                            tool_call_id=tool_call_id
+                        )
+                        filtered_messages.append(dummy_response)
+                    expecting_tool_response = False
+                    pending_tool_call_ids.clear()
+                
+                # Add the current message
+                filtered_messages.append(msg)
+        
+        # Handle any remaining pending tool calls at the end
+        if expecting_tool_response and pending_tool_call_ids:
+            print(f"⚠️ Creating final dummy tool responses for {len(pending_tool_call_ids)} pending calls")
+            from langchain_core.messages import ToolMessage
+            for tool_call_id in pending_tool_call_ids:
+                dummy_response = ToolMessage(
+                    content="Tool execution completed",
+                    tool_call_id=tool_call_id
+                )
+                filtered_messages.append(dummy_response)
     
     print(f"📝 Call_model filtered sequence: {[msg.type for msg in filtered_messages]}")
+    
+    # Ensure we have at least one valid message
+    if not filtered_messages:
+        print("⚠️ No valid messages after filtering, creating minimal conversation")
+        from langchain_core.messages import HumanMessage
+        filtered_messages = [HumanMessage(content="Hello")]
     
     # Use only the filtered messages with system prompt
     messages_with_system = [SystemMessage(content=dynamic_system_prompt)] + filtered_messages
@@ -1017,6 +1102,14 @@ CRITICAL: Based on authentication status:
             messages_with_system = truncate_conversation(messages_with_system)
         
         print(f"📊 Sending {len(messages_with_system)} messages to model (est. {total_tokens} tokens)")
+        
+        # Additional debugging - validate message structure
+        for i, msg in enumerate(messages_with_system):
+            if hasattr(msg, 'content'):
+                content_preview = str(msg.content)[:100] + "..." if len(str(msg.content)) > 100 else str(msg.content)
+                print(f"  📝 Message {i} ({getattr(msg, 'type', 'unknown')}): {content_preview}")
+            else:
+                print(f"  ⚠️  Message {i} has no content attribute: {type(msg)}")
         
         # Invoke the model with the system prompt and the messages
         response = model.invoke(messages_with_system, config)
@@ -1055,12 +1148,16 @@ CRITICAL: Based on authentication status:
             print(f"   - Latest user message: {latest_user_message[:100] if latest_user_message else 'None'}...")
             
             # Try to identify the specific issue
-            if "maximum context length" in error_msg.lower():
+            if "maximum context length" in error_msg.lower() or "context_length_exceeded" in error_msg.lower():
                 error_response_content = "I apologize, but our conversation has become too long. Please start a new chat to continue."
-            elif "invalid" in error_msg.lower():
-                error_response_content = "I encountered an issue with the message format. Please try rephrasing your question."
+            elif "tool_calls" in error_msg.lower() and "must be followed" in error_msg.lower():
+                error_response_content = "I encountered an issue with tool execution flow. Let me try again with a fresh approach."
+            elif "invalid request" in error_msg.lower() or "malformed" in error_msg.lower():
+                error_response_content = "I encountered an issue with the request format. Please try rephrasing your question."
+            elif "token" in error_msg.lower() and "limit" in error_msg.lower():
+                error_response_content = "Your message is too long. Please try asking in a shorter way."
             else:
-                error_response_content = "I'm experiencing technical difficulties. Please try again or start a new conversation."
+                error_response_content = "I'm experiencing technical difficulties with the AI service. Please try again."
         
         elif "RateLimitError" in error_type:
             error_response_content = "I'm currently handling many requests. Please wait a moment and try again."
@@ -2012,6 +2109,17 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                             print(f"🔧 Extracted from data field. New keys: {list(parsed_json.keys())}")
 
                 # Return properly formatted JSON
+                print(f"🔧 Final parsed_json before return: {str(parsed_json)[:300]}...")
+                print(f"🔧 Final parsed_json keys: {list(parsed_json.keys()) if isinstance(parsed_json, dict) else 'Not a dict'}")
+                
+                # Validate final response has required fields
+                if isinstance(parsed_json, dict):
+                    if not parsed_json.get('answer'):
+                        print("⚠️ Missing answer field, adding default")
+                        parsed_json['answer'] = "I found some information for you."
+                    if 'end' not in parsed_json:
+                        parsed_json['end'] = "How else can I help you?"
+                
                 return json.dumps(parsed_json, ensure_ascii=False, indent=2)
                 
             except json.JSONDecodeError as e:
