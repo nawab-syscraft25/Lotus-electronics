@@ -789,7 +789,9 @@ openai_api_key = os.getenv("OPENAI_API_KEY")
 llm = ChatOpenAI(
     model="gpt-4o-mini",  # fast + cost effective
     temperature=0,        # better accuracy & deterministic
-    max_retries=2,        # reduced from 3 to prevent memory issues
+    max_retries=3,        # increased for better reliability
+    request_timeout=30,   # 30 second timeout
+    max_tokens=4000,      # limit response length
     api_key=openai_api_key,
 )
 
@@ -804,8 +806,38 @@ model = llm.bind_tools([search_products, get_near_store, get_filtered_product_de
 
 from langchain_core.messages import ToolMessage
 from langchain_core.runnables import RunnableConfig
+import traceback
 
 tools_by_name = {tool.name: tool for tool in tools}
+
+def estimate_token_count(messages):
+    """Estimate token count for messages (rough approximation)"""
+    total_chars = 0
+    for msg in messages:
+        if hasattr(msg, 'content'):
+            total_chars += len(str(msg.content))
+    # Rough estimate: 1 token ≈ 4 characters for English text
+    return total_chars // 4
+
+def truncate_conversation(messages, max_tokens=12000):
+    """Truncate conversation to fit within token limits"""
+    system_msg = messages[0] if messages and hasattr(messages[0], 'type') and 'system' in messages[0].type.lower() else None
+    other_messages = messages[1:] if system_msg else messages
+    
+    # Keep system message and recent messages
+    truncated = []
+    if system_msg:
+        truncated.append(system_msg)
+    
+    # Keep the last few messages to maintain context
+    recent_messages = other_messages[-10:]  # Keep last 10 messages
+    truncated.extend(recent_messages)
+    
+    # If still too long, keep only the most recent
+    if estimate_token_count(truncated) > max_tokens:
+        truncated = [system_msg] + other_messages[-5:] if system_msg else other_messages[-5:]
+    
+    return truncated
 
 def call_tool(state: AgentState):
     outputs = []
@@ -850,6 +882,24 @@ def call_model(
     
     # Get the current conversation messages from state
     messages = state["messages"]
+    
+    # Input validation to prevent BadRequestError
+    if not messages:
+        print("⚠️ No messages in state, creating default response")
+        from langchain_core.messages import AIMessage
+        default_response = AIMessage(content=json.dumps({
+            "answer": "Hello! I'm your Lotus Electronics assistant. How can I help you today?",
+            "end": "Ask me about our products, stores, or any questions you have!"
+        }))
+        return {"messages": [default_response]}
+    
+    # Validate message content
+    for i, msg in enumerate(messages):
+        if hasattr(msg, 'content') and msg.content:
+            # Check for extremely long content that might cause issues
+            if len(str(msg.content)) > 10000:
+                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
+                msg.content = str(msg.content)[:10000] + "... [truncated]"
     
     # Get the latest user message for debugging
     latest_user_message = None
@@ -929,6 +979,14 @@ CRITICAL: Based on authentication status:
     messages_with_system = [SystemMessage(content=dynamic_system_prompt)] + filtered_messages
     
     try:
+        # Validate messages before sending to avoid BadRequestError
+        total_tokens = estimate_token_count(messages_with_system)
+        if total_tokens > 15000:  # Conservative limit for gpt-4o-mini
+            print(f"⚠️ Token count too high ({total_tokens}), truncating conversation...")
+            messages_with_system = truncate_conversation(messages_with_system)
+        
+        print(f"📊 Sending {len(messages_with_system)} messages to model (est. {total_tokens} tokens)")
+        
         # Invoke the model with the system prompt and the messages
         response = model.invoke(messages_with_system, config)
         
@@ -953,15 +1011,41 @@ CRITICAL: Based on authentication status:
         return {"messages": [response]}
         
     except Exception as e:
-        print(f"❌ Error in call_model: {type(e).__name__}: {e}")
-        print(f"❌ Error details: {str(e)}")
-        import traceback
+        error_type = type(e).__name__
+        error_msg = str(e)
+        
+        print(f"❌ Error in call_model: {error_type}: {error_msg}")
+        
+        # Handle specific error types
+        if "BadRequestError" in error_type:
+            print("🔍 BadRequestError details:")
+            print(f"   - Message count: {len(messages_with_system)}")
+            print(f"   - Estimated tokens: {estimate_token_count(messages_with_system)}")
+            print(f"   - Latest user message: {latest_user_message[:100] if latest_user_message else 'None'}...")
+            
+            # Try to identify the specific issue
+            if "maximum context length" in error_msg.lower():
+                error_response_content = "I apologize, but our conversation has become too long. Please start a new chat to continue."
+            elif "invalid" in error_msg.lower():
+                error_response_content = "I encountered an issue with the message format. Please try rephrasing your question."
+            else:
+                error_response_content = "I'm experiencing technical difficulties. Please try again or start a new conversation."
+        
+        elif "RateLimitError" in error_type:
+            error_response_content = "I'm currently handling many requests. Please wait a moment and try again."
+        
+        elif "AuthenticationError" in error_type:
+            error_response_content = "There's an authentication issue with our AI service. Please contact support."
+        
+        else:
+            error_response_content = f"I encountered an unexpected error ({error_type}). Please try again."
+        
         print(f"❌ Full traceback: {traceback.format_exc()}")
         
         # Create a simple error response
         from langchain_core.messages import AIMessage
         error_response = AIMessage(content=json.dumps({
-            "answer": f"I'm sorry, I encountered an error while processing your request. Error: {type(e).__name__}. Please try again.",
+            "answer": error_response_content,
             "end": "How else can I help you with Lotus Electronics products?"
         }))
         return {"messages": [error_response]}
