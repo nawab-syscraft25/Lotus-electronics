@@ -967,6 +967,60 @@ def call_tool(state: AgentState):
     print(f"🎯 Returning {len(outputs)} tool message(s)")
     return {"messages": outputs}
 
+def validate_message_structure(messages):
+    """Validate message structure to prevent API format errors"""
+    valid_messages = []
+    
+    for i, msg in enumerate(messages):
+        try:
+            # Check if message has required attributes
+            if not hasattr(msg, 'type'):
+                print(f"⚠️ Message {i} missing 'type' attribute, skipping")
+                continue
+                
+            # Check if message type is valid
+            if msg.type not in ['system', 'human', 'ai', 'tool']:
+                print(f"⚠️ Message {i} has invalid type '{msg.type}', skipping")
+                continue
+                
+            # Check content attribute
+            if hasattr(msg, 'content'):
+                # Ensure content is string
+                if msg.content is None:
+                    msg.content = ""
+                elif not isinstance(msg.content, str):
+                    msg.content = str(msg.content)
+                    
+                # Trim excessively long content
+                if len(msg.content) > 8000:
+                    msg.content = msg.content[:8000] + "... [truncated]"
+                    print(f"⚠️ Message {i} content truncated due to length")
+            
+            # Validate tool calls if present
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                valid_tool_calls = []
+                for tc in msg.tool_calls:
+                    if isinstance(tc, dict) and 'id' in tc and 'name' in tc:
+                        valid_tool_calls.append(tc)
+                    else:
+                        print(f"⚠️ Invalid tool call structure in message {i}")
+                msg.tool_calls = valid_tool_calls
+            
+            # Validate tool_call_id for tool messages
+            if msg.type == 'tool':
+                if not hasattr(msg, 'tool_call_id') or not msg.tool_call_id:
+                    print(f"⚠️ Tool message {i} missing tool_call_id, skipping")
+                    continue
+            
+            valid_messages.append(msg)
+            
+        except Exception as e:
+            print(f"⚠️ Error validating message {i}: {e}")
+            continue
+    
+    return valid_messages
+
+
 def call_model(
     state: AgentState,
     config: RunnableConfig,
@@ -1004,19 +1058,40 @@ def call_model(
     
     # Validate message content before processing
     for i, msg in enumerate(messages):
-        if hasattr(msg, 'content') and msg.content:
-            # Check for extremely long content that might cause issues
-            if len(str(msg.content)) > 10000:
-                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
-                msg.content = str(msg.content)[:10000] + "... [truncated]"
-        elif hasattr(msg, 'content'):
-            # Handle empty or None content
-            if msg.content is None or str(msg.content).strip() == "":
+        if hasattr(msg, 'content'):
+            # Handle None or empty content
+            if msg.content is None:
+                print(f"⚠️ Message {i} has None content, setting default")
+                if hasattr(msg, 'type') and msg.type == 'human':
+                    msg.content = "Hello"
+                elif hasattr(msg, 'type') and msg.type == 'ai':
+                    msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
+                else:
+                    msg.content = ""
+            elif str(msg.content).strip() == "":
                 print(f"⚠️ Message {i} has empty content, setting default")
                 if hasattr(msg, 'type') and msg.type == 'human':
                     msg.content = "Hello"
                 elif hasattr(msg, 'type') and msg.type == 'ai':
                     msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
+                else:
+                    msg.content = "..."
+            # Check for extremely long content that might cause issues
+            elif len(str(msg.content)) > 10000:
+                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
+                msg.content = str(msg.content)[:10000] + "... [truncated]"
+            # Ensure content is a proper string
+            elif not isinstance(msg.content, str):
+                print(f"⚠️ Message {i} content is not string, converting...")
+                msg.content = str(msg.content)
+        else:
+            print(f"⚠️ Message {i} has no content attribute, adding default content")
+            if hasattr(msg, 'type') and msg.type == 'human':
+                msg.content = "Hello"
+            elif hasattr(msg, 'type') and msg.type == 'ai':
+                msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
+            else:
+                msg.content = ""
     
     # Get the latest user message for debugging
     latest_user_message = None
@@ -1152,6 +1227,18 @@ CRITICAL: Based on authentication status:
     # Use only the filtered messages with system prompt
     messages_with_system = [SystemMessage(content=dynamic_system_prompt)] + filtered_messages
     
+    # Validate message structure to prevent format errors
+    messages_with_system = validate_message_structure(messages_with_system)
+    
+    # Final safety check - ensure we have valid messages
+    if not messages_with_system or len(messages_with_system) < 2:  # At least system + 1 message
+        print("⚠️ Invalid message structure after validation, creating safe conversation")
+        from langchain_core.messages import SystemMessage, HumanMessage
+        messages_with_system = [
+            SystemMessage(content=dynamic_system_prompt),
+            HumanMessage(content=latest_user_message if latest_user_message else "Hello")
+        ]
+    
     try:
         # Validate messages before sending to avoid BadRequestError
         total_tokens = estimate_token_count(messages_with_system)
@@ -1205,17 +1292,41 @@ CRITICAL: Based on authentication status:
             print(f"   - Estimated tokens: {estimate_token_count(messages_with_system)}")
             print(f"   - Latest user message: {latest_user_message[:100] if latest_user_message else 'None'}...")
             
+            # Enhanced error diagnostics
+            print("🔍 Message sequence analysis:")
+            for i, msg in enumerate(messages_with_system):
+                msg_type = getattr(msg, 'type', 'unknown')
+                content_preview = str(getattr(msg, 'content', 'No content'))[:50] + "..."
+                print(f"   [{i}] {msg_type}: {content_preview}")
+            
+            # Check for tool calls in recent messages
+            tool_calls_found = False
+            for msg in messages_with_system[-5:]:  # Check last 5 messages
+                if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                    tool_calls_found = True
+                    print(f"   🔧 Tool calls found: {[tc.get('name', 'unknown') for tc in msg.tool_calls]}")
+            
+            if not tool_calls_found:
+                print("   ✅ No tool calls in recent messages")
+            
             # Try to identify the specific issue
             if "maximum context length" in error_msg.lower() or "context_length_exceeded" in error_msg.lower():
                 error_response_content = "I apologize, but our conversation has become too long. Please start a new chat to continue."
             elif "tool_calls" in error_msg.lower() and "must be followed" in error_msg.lower():
                 error_response_content = "I encountered an issue with tool execution flow. Let me try again with a fresh approach."
             elif "invalid request" in error_msg.lower() or "malformed" in error_msg.lower():
-                error_response_content = "I encountered an issue with the request format. Please try rephrasing your question."
+                # More specific diagnosis for malformed requests
+                print(f"🔍 Malformed request details: {error_msg}")
+                if "tool_calls" in error_msg.lower():
+                    error_response_content = "I encountered an issue with tool formatting. Let me restart our conversation."
+                elif "messages" in error_msg.lower():
+                    error_response_content = "I encountered an issue with message formatting. Please try starting a new conversation."
+                else:
+                    error_response_content = "I encountered an issue with the request format. Please try rephrasing your question."
             elif "token" in error_msg.lower() and "limit" in error_msg.lower():
                 error_response_content = "Your message is too long. Please try asking in a shorter way."
             else:
-                error_response_content = "I'm experiencing technical difficulties with the AI service. Please try again."
+                error_response_content = f"I'm experiencing technical difficulties with the AI service ({error_msg[:100]}). Please try again."
         
         elif "RateLimitError" in error_type:
             error_response_content = "I'm currently handling many requests. Please wait a moment and try again."
