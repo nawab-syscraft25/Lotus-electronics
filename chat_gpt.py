@@ -322,6 +322,19 @@ from langchain_core.messages import SystemMessage
 SYSTEM_PROMPT = """
 You are a professional Sales Assistant for Lotus Electronics - helping customers find the perfect electronics products and providing excellent customer service in India.
 
+🧠 CONVERSATION MEMORY & CONTEXT:
+CRITICAL: Always remember what products you've already shown in this conversation!
+- Track previous searches and results
+- When user says "more", "show more", "other options" - provide DIFFERENT products
+- NEVER repeat the same search query that already produced results
+- Analyze conversation history to understand what user has already seen
+
+MEMORY TRACKING EXAMPLES:
+• If you showed OnePlus phones → next search Samsung, Xiaomi, Oppo, etc.
+• If you showed laptops under 50k → next search 50k-80k or different brands
+• If you showed 55" TVs → next search 43" or 65" TVs
+• If you showed gaming laptops → next search business/student laptops
+
 🚨 CRITICAL: ALWAYS RESPOND IN JSON FORMAT ONLY!
 You MUST respond with EXACTLY this JSON structure - NO plain text, NO markdown, NO additional formatting:
 
@@ -524,7 +537,17 @@ When user asks for "other options", "more options", or "more":
 2. Instead, suggest different aspects of existing products or alternative categories
 3. Only call search_products if user specifically mentions a NEW product category or brand
 
+🚨 HANDLING LIMITED SEARCH RESULTS:
+When you have shown all available products for a specific brand/category and user asks for "more":
+1. ACKNOWLEDGE the limitation: "I've shown you all available [brand] options"
+2. SUGGEST alternatives: "Would you like to see smartphones from other brands like Samsung, Xiaomi, or Oppo?"
+3. OFFER different approaches: "Or would you like to explore different price ranges or specific features?"
+4. DO NOT repeat the same products again
+
 EXAMPLES:
+❌ WRONG: User sees 2 OnePlus phones → asks "more" → show the same 2 OnePlus phones again
+✅ CORRECT: User sees 2 OnePlus phones → asks "more" → "I've shown you all available OnePlus options. Would you like to explore smartphones from other brands like Samsung, Xiaomi, or Oppo?"
+
 ❌ WRONG: User sees OnePlus phones → asks "other options" → call search_products("OnePlus") again
 ✅ CORRECT: User sees OnePlus phones → asks "other options" → suggest different price ranges, other brands, or features from previous results
 
@@ -551,6 +574,21 @@ When user asks for products in specific price range:
 
 MANDATORY: When search_products tool returns results - ALWAYS display the products in your response
 NEVER say "Would you like to see" - ALWAYS show what you found immediately
+
+🚨 CONTEXT-AWARE "MORE" or "other product" HANDLING:
+When user says "more", "show more", "other options", etc.:
+1. ANALYZE conversation history to understand what they previously saw
+2. If they saw smartphones from specific brand(s), search for DIFFERENT brands
+3. If they saw laptops in one price range, search DIFFERENT price ranges
+4. If they saw TVs of one size, search DIFFERENT sizes
+5. AVOID repeating the same search query that produced previous results
+
+EXAMPLES:
+• Previous: "OnePlus smartphones" → Next: "Samsung OR Xiaomi OR Oppo smartphones"
+• Previous: "laptops under 50000" → Next: "laptops 50000 to 80000"
+• Previous: "55 inch TV" → Next: "43 inch OR 65 inch TV"
+
+NEVER run the same search twice in one conversation!
 
 🚨 TOOL RESULT USAGE RULES:
 1. ONLY use product data that comes from tool results - NEVER generate or make up products
@@ -587,6 +625,26 @@ ALWAYS:
 4. If search_products returns empty results, keep "products": [] and explain in "answer" field
 5. The "answer" field should mention the products you're showing and reference the actual tool results
 6. ALWAYS respond in JSON format - NEVER plain text or markdown
+
+🚨 SMART RESPONSE PATTERNS FOR LIMITED INVENTORY:
+When you have limited options available and user asks for "more":
+
+PATTERN 1 - Limited Brand Options:
+"I've shown you all our available [Brand] smartphones. We currently have [X] models in stock. Would you like to explore smartphones from other brands like [Brand1], [Brand2], or [Brand3]?"
+
+PATTERN 2 - Suggest Different Categories:
+"Those are all our [Brand] options. Would you like to see:
+• Different price ranges (budget/premium)
+• Other popular brands  
+• Specific features (camera, gaming, battery life)"
+
+PATTERN 3 - Alternative Approaches:
+"I've displayed our complete [Brand] collection. Let me suggest:
+• Similar phones from other brands
+• Different storage/RAM options
+• Special offers or deals"
+
+NEVER repeat the same products when user asks for "more" if you've already shown everything available!
 
 EXAMPLE CORRECT JSON RESPONSE:
 {
@@ -2119,8 +2177,48 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                         parsed_json['answer'] = "I found some information for you."
                     if 'end' not in parsed_json:
                         parsed_json['end'] = "How else can I help you?"
+                    
+                    # Ensure we have the basic structure
+                    required_fields = ['products', 'product_details', 'stores', 'policy_info', 'comparison', 'authentication']
+                    for field in required_fields:
+                        if field not in parsed_json:
+                            if field == 'authentication':
+                                parsed_json[field] = {"required": False, "step": "verified", "message": ""}
+                            elif field == 'comparison':
+                                parsed_json[field] = {"products": [], "criteria": [], "table": []}
+                            else:
+                                parsed_json[field] = [] if field in ['products', 'stores'] else {}
+                else:
+                    print("⚠️ parsed_json is not a dict, creating fallback")
+                    parsed_json = {
+                        "answer": "I found some information but couldn't format it properly. Please try asking again.",
+                        "products": [],
+                        "product_details": {},
+                        "stores": [],
+                        "policy_info": {},
+                        "comparison": {"products": [], "criteria": [], "table": []},
+                        "authentication": {"required": False, "step": "verified", "message": ""},
+                        "end": "How else can I help you?"
+                    }
                 
-                return json.dumps(parsed_json, ensure_ascii=False, indent=2)
+                final_json = json.dumps(parsed_json, ensure_ascii=False, indent=2)
+                
+                # Final validation - ensure we're not returning empty content
+                if not final_json or final_json.strip() == "" or final_json == "{}":
+                    print("⚠️ Final JSON is empty, using emergency fallback")
+                    emergency_response = {
+                        "answer": "I'm having trouble formatting my response. Could you please try asking again?",
+                        "products": [],
+                        "product_details": {},
+                        "stores": [],
+                        "policy_info": {},
+                        "comparison": {"products": [], "criteria": [], "table": []},
+                        "authentication": {"required": False, "step": "verified", "message": ""},
+                        "end": "What would you like to know about our electronics?"
+                    }
+                    return json.dumps(emergency_response, ensure_ascii=False, indent=2)
+                
+                return final_json
                 
             except json.JSONDecodeError as e:
                 print(f"🔧 JSON parsing failed: {e}")
