@@ -34,15 +34,15 @@
         /* Mobile Toggle Button */
         .mobile-toggle {
             display: none;
-            position: fixed;
-            top: 42px;
-            left: 360px;
-            z-index: 1001;
+            /* position: fixed; */
+            /* top: 42px; */
+            /* left: 360px; */
+            /* z-index: 1001; */
             background: rgb(63, 164, 146);
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 10px 15px;
+            padding: 8px 13px;
             font-size: 18px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             cursor: pointer;
@@ -70,13 +70,17 @@
         @media (max-width: 767px) {
             .mobile-toggle {
                 display: block;
+                z-index: 1001;
+            }
+            .mob-chat-nav{
+                display: flex !important;
             }
 
             .sidebar {
                 position: fixed;
                 top: 0;
                 left: -100%;
-                width: 280px;
+                width: 250px;
                 z-index: 1000;
                 box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
             }
@@ -96,6 +100,9 @@
 
             .sidebar {
                 margin-bottom: 20px;
+            }
+            .log-filter{
+                width: 100%;
             }
         }
 
@@ -357,6 +364,7 @@
         .session-main i {
             color: #3fa492;
         }
+
         .session-main .text-muted {
             text-decoration: underline;
         }
@@ -364,14 +372,14 @@
         .session-main .badge {
             background-color: #3fa492;
         }
-        .session-main:hover{
+
+        .session-main:hover {
             border-color: #3fa492;
         }
 
 
         .default-csbutton,
-        .default-csbutton:hover
-         {
+        .default-csbutton:hover {
             background-color: #3fa492;
             color: #fff;
         }
@@ -379,21 +387,23 @@
         .stat-card p {
             margin-bottom: 0px;
         }
-        .conversations-search{
+
+        .conversations-search {
             width: 50%;
             border-radius: 8px;
         }
 
-        .conversations-search-btn{
+        .conversations-search-btn {
             border-radius: 7px;
 
         }
-        .conversations-table1 span.badge{
+
+        .conversations-table1 span.badge {
             background-color: #3fa492 !important;
 
         }
 
-        .conversations-table1 button.btn{
+        .conversations-table1 button.btn {
             color: #fff;
             background-color: #3fa492;
             border: none;
@@ -403,33 +413,71 @@
         /* .conversations-search{
 
         } */
-        .log-filter button{
+
+        .log-filter button {
             white-space: nowrap;
             border-radius: 8px;
 
         }
+
         .system-log .table tbody td .badge {
             background-color: #3fa492 !important;
         }
+
         .system-log .table tbody td .btn {
             background-color: #3fa492 !important;
             border: none;
             color: #fff;
         }
 
+
+        .content-section .active>.page-link,
+        .content-section .page-link.active {
+            background-color: #3fa492;
+            border-color: #3fa492;
+            color: #fff;
+        }
+
+        .content-section .page-link {
+            color: #3fa492;
+        }
+
+        .content-section .pagination {
+            margin-top: 15px;
+        }
+
+        .mob-chat-nav img{
+            width: 35%;
+            
+        }
+        .mob-chat-nav{
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0px;
+        }
+
+
+
+
     </style>
 </head>
 
 <body>
     <!-- Mobile Toggle Button -->
-    <button class="mobile-toggle" id="mobileToggle">
-        <i class="fas fa-bars"></i>
-    </button>
+
 
     <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 
     <div class="container-fluid">
+        <div class="mob-chat-nav">
+            <img src="/static/images/lotus-logo.png">
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        </div>
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-2 sidebar p-3" id="sidebar">
@@ -657,7 +705,8 @@
                     <div
                         class="d-flex flex-column flex-md-row justify-content-between align-items-start-center mb-4 gap-3">
                         <h2 class="section-title mb-0">Conversations</h2>
-                        <div class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto justify-content-end align-items-center ">
+                        <div
+                            class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto justify-content-end align-items-center ">
                             <input type="text" id="session-search" class="form-control search-box conversations-search"
                                 placeholder="Search by Session ID...">
                             <button class="btn btn-custom conversations-search-btn" onclick="loadConversations()">
@@ -808,7 +857,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/js/admin-dashboard.js"></script>
 
-    <script>
+    <!-- <script>
         // Mobile toggle functionality
         document.addEventListener('DOMContentLoaded', function () {
             const mobileToggle = document.getElementById('mobileToggle');
@@ -850,7 +899,108 @@
                 }
             });
         });
-    </script>
+    </script> -->
+
+    <script>
+
+    // Mobile toggle functionality
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const mobileToggle = document.getElementById('mobileToggle');
+
+        const toggleIcon = mobileToggle.querySelector('i'); // target <i> inside button
+
+        const sidebar = document.getElementById('sidebar');
+
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+ 
+        // Toggle sidebar
+
+        function toggleSidebar() {
+
+            sidebar.classList.toggle('show');
+
+            sidebarOverlay.classList.toggle('show');
+
+            document.body.style.overflow = sidebar.classList.contains('show') ? 'hidden' : 'auto';
+ 
+            // Change icon between bars and times (X)
+
+            if (sidebar.classList.contains('show')) {
+
+                toggleIcon.classList.remove('fa-bars');
+
+                toggleIcon.classList.add('fa-times');
+
+            } else {
+
+                toggleIcon.classList.remove('fa-times');
+
+                toggleIcon.classList.add('fa-bars');
+
+            }
+
+        }
+ 
+        // Close sidebar
+
+        function closeSidebar() {
+
+            sidebar.classList.remove('show');
+
+            sidebarOverlay.classList.remove('show');
+
+            document.body.style.overflow = 'auto';
+ 
+            // Reset icon to bars
+
+            toggleIcon.classList.remove('fa-times');
+
+            toggleIcon.classList.add('fa-bars');
+
+        }
+ 
+        // Event listeners
+
+        mobileToggle.addEventListener('click', toggleSidebar);
+
+        sidebarOverlay.addEventListener('click', closeSidebar);
+ 
+        // Close sidebar when clicking nav links on mobile
+
+        const navLinks = sidebar.querySelectorAll('.nav-link[data-section]');
+
+        navLinks.forEach(link => {
+
+            link.addEventListener('click', function () {
+
+                if (window.innerWidth <= 767) {
+
+                    closeSidebar();
+
+                }
+
+            });
+
+        });
+ 
+        // Handle window resize
+
+        window.addEventListener('resize', function () {
+
+            if (window.innerWidth > 767) {
+
+                closeSidebar();
+
+            }
+
+        });
+
+    });
+</script>
+
+ 
 </body>
 
 </html>

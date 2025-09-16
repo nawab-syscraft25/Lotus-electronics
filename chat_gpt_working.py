@@ -354,12 +354,6 @@ You MUST respond with EXACTLY this JSON structure - NO plain text, NO markdown, 
 - NEVER respond with just text like "Great! Let me find..." - ALWAYS call the appropriate tool
 - NEVER provide product information without calling tools first
 - ALWAYS use tool results in your response
-- If first search returns empty/few results, IMMEDIATELY call search_products again with broader criteria
-
-🚨 MANDATORY SEARCH BEHAVIOR:
-User asks for products → IMMEDIATELY call search_products (no conversational delay)
-If search returns 0-2 results → IMMEDIATELY call search_products again with broader query
-NEVER ask "Would you like me to search" - just search automatically
 
 🚨 CRITICAL RULE: When search_products tool returns any results, ALWAYS display the products immediately in your response. 
 NEVER ask "Would you like to see" or "Shall I show you" - ALWAYS show what you found!
@@ -429,15 +423,12 @@ Authentication States:
 3. 'authenticated' - User verified, can access all features
 
 AUTHENTICATION RULES:
-- If user status is 'authenticated': User is verified, proceed with normal product assistance
-- If user status is 'pending_phone': Ask for phone number only  
-- If user status is 'pending_otp': Ask for OTP verification only
-- DO NOT ask for authentication again if user is already 'authenticated'
-- Only non-authenticated users need phone/OTP verification
+- If user is NOT authenticated, ONLY respond with authentication requests
+- DO NOT use any product/store tools until user is authenticated
+- First ask for phone number, then send OTP, then verify OTP
+- Only after successful OTP verification, proceed with normal operations
 
-🚨 CRITICAL: If USER AUTHENTICATION STATUS shows 'AUTHENTICATED' - skip all authentication and provide normal product assistance!
-
-AUTHENTICATION RESPONSES (ONLY when status is NOT 'authenticated'):
+AUTHENTICATION RESPONSES (when not authenticated):
 - Ask for phone number: "Welcome to Lotus Electronics! Sure, please share your phone number for validation and to serve you better. This will also help us give you the best options as per your purchase history and customized offers for you."
 - After phone provided: Use send_otp_user tool automatically
 - After OTP sent: "Please enter the OTP sent to your phone number to continue."
@@ -580,22 +571,6 @@ When user asks for products in specific price range:
 3. ALWAYS SHOW available products with honest explanations about pricing
 4. Use broader search terms if needed (e.g., "LED TV" instead of "55 inch LED TV")
 5. Present actual products immediately, don't just ask permission to show broader range
-
-🚨 CRITICAL: EMPTY SEARCH RESULTS HANDLING:
-When search_products returns 0 results or very few results:
-1. IMMEDIATELY call search_products again with broader query
-2. For price-based searches: expand price range by ±30%
-3. For feature-based searches: use simpler, broader terms
-4. NEVER ask permission - automatically show broader results
-5. Explain the price/criteria adjustment in your response
-
-EXAMPLES OF AUTOMATIC SEARCH EXPANSION:
-• search_products("smartphones camera", price_max=45000) → 0 results
-  → IMMEDIATELY call search_products("smartphones", price_max=60000)
-• search_products("gaming laptops", price_max=50000) → 0 results  
-  → IMMEDIATELY call search_products("laptops", price_max=65000)
-• search_products("55 inch smart TV") → 0 results
-  → IMMEDIATELY call search_products("smart TV")
 
 MANDATORY: When search_products tool returns results - ALWAYS display the products in your response
 NEVER say "Would you like to see" - ALWAYS show what you found immediately
@@ -992,67 +967,10 @@ def call_tool(state: AgentState):
     print(f"🎯 Returning {len(outputs)} tool message(s)")
     return {"messages": outputs}
 
-def validate_message_structure(messages):
-    """Validate message structure to prevent API format errors"""
-    valid_messages = []
-    
-    for i, msg in enumerate(messages):
-        try:
-            # Check if message has required attributes
-            if not hasattr(msg, 'type'):
-                print(f"⚠️ Message {i} missing 'type' attribute, skipping")
-                continue
-                
-            # Check if message type is valid
-            if msg.type not in ['system', 'human', 'ai', 'tool']:
-                print(f"⚠️ Message {i} has invalid type '{msg.type}', skipping")
-                continue
-                
-            # Check content attribute
-            if hasattr(msg, 'content'):
-                # Ensure content is string
-                if msg.content is None:
-                    msg.content = ""
-                elif not isinstance(msg.content, str):
-                    msg.content = str(msg.content)
-                    
-                # Trim excessively long content
-                if len(msg.content) > 8000:
-                    msg.content = msg.content[:8000] + "... [truncated]"
-                    print(f"⚠️ Message {i} content truncated due to length")
-            
-            # Validate tool calls if present
-            if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                valid_tool_calls = []
-                for tc in msg.tool_calls:
-                    if isinstance(tc, dict) and 'id' in tc and 'name' in tc:
-                        valid_tool_calls.append(tc)
-                    else:
-                        print(f"⚠️ Invalid tool call structure in message {i}")
-                msg.tool_calls = valid_tool_calls
-            
-            # Validate tool_call_id for tool messages
-            if msg.type == 'tool':
-                if not hasattr(msg, 'tool_call_id') or not msg.tool_call_id:
-                    print(f"⚠️ Tool message {i} missing tool_call_id, skipping")
-                    continue
-            
-            valid_messages.append(msg)
-            
-        except Exception as e:
-            print(f"⚠️ Error validating message {i}: {e}")
-            continue
-    
-    return valid_messages
-
-
 def call_model(
     state: AgentState,
     config: RunnableConfig,
 ):
-    # Import necessary message types
-    from langchain_core.messages import SystemMessage, AIMessage, HumanMessage, ToolMessage
-    
     # Get user ID from state
     user_id = state.get("user_id", "default_user")
     
@@ -1062,14 +980,6 @@ def call_model(
     user_phone = auth_state.get('phone_number')
     
     print(f"🔐 call_model: User {user_id} auth status: {user_auth_status}")
-    print(f"🔐 Auth state details: {auth_state}")
-    
-    # Additional debugging for authentication issues
-    if user_auth_status != 'authenticated':
-        print(f"⚠️  User {user_id} not authenticated. Current state: {user_auth_status}")
-        print(f"📱 Phone number: {user_phone}")
-    else:
-        print(f"✅ User {user_id} is authenticated. Phone: {user_phone}")
     
     # Get the current conversation messages from state
     messages = state["messages"]
@@ -1077,6 +987,7 @@ def call_model(
     # Input validation to prevent BadRequestError
     if not messages:
         print("⚠️ No messages in state, creating default response")
+        from langchain_core.messages import AIMessage
         default_response = AIMessage(content=json.dumps({
             "answer": "Hello! I'm your Lotus Electronics assistant. How can I help you today?",
             "products": [],
@@ -1093,40 +1004,19 @@ def call_model(
     
     # Validate message content before processing
     for i, msg in enumerate(messages):
-        if hasattr(msg, 'content'):
-            # Handle None or empty content
-            if msg.content is None:
-                print(f"⚠️ Message {i} has None content, setting default")
-                if hasattr(msg, 'type') and msg.type == 'human':
-                    msg.content = "Hello"
-                elif hasattr(msg, 'type') and msg.type == 'ai':
-                    msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
-                else:
-                    msg.content = ""
-            elif str(msg.content).strip() == "":
+        if hasattr(msg, 'content') and msg.content:
+            # Check for extremely long content that might cause issues
+            if len(str(msg.content)) > 10000:
+                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
+                msg.content = str(msg.content)[:10000] + "... [truncated]"
+        elif hasattr(msg, 'content'):
+            # Handle empty or None content
+            if msg.content is None or str(msg.content).strip() == "":
                 print(f"⚠️ Message {i} has empty content, setting default")
                 if hasattr(msg, 'type') and msg.type == 'human':
                     msg.content = "Hello"
                 elif hasattr(msg, 'type') and msg.type == 'ai':
                     msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
-                else:
-                    msg.content = "..."
-            # Check for extremely long content that might cause issues
-            elif len(str(msg.content)) > 10000:
-                print(f"⚠️ Message {i} is very long ({len(str(msg.content))} chars), truncating...")
-                msg.content = str(msg.content)[:10000] + "... [truncated]"
-            # Ensure content is a proper string
-            elif not isinstance(msg.content, str):
-                print(f"⚠️ Message {i} content is not string, converting...")
-                msg.content = str(msg.content)
-        else:
-            print(f"⚠️ Message {i} has no content attribute, adding default content")
-            if hasattr(msg, 'type') and msg.type == 'human':
-                msg.content = "Hello"
-            elif hasattr(msg, 'type') and msg.type == 'ai':
-                msg.content = '{"answer": "How can I help you?", "end": "What are you looking for?"}'
-            else:
-                msg.content = ""
     
     # Get the latest user message for debugging
     latest_user_message = None
@@ -1156,19 +1046,13 @@ def call_model(
     
     # Create dynamic system prompt with authentication status
     auth_context = f"""
+USER AUTHENTICATION STATUS: {user_auth_status.upper()}
+USER PHONE: {user_phone if user_phone else 'Not provided'}
 
-🔐 USER AUTHENTICATION STATUS: {user_auth_status.upper()}
-🔐 USER PHONE: {user_phone if user_phone else 'Not provided'}
-
-🚨 AUTHENTICATION OVERRIDE RULES:
-- If status is 'AUTHENTICATED': User is ALREADY VERIFIED - provide normal product assistance immediately
-- If status is 'PENDING_PHONE': Ask for phone number only
-- If status is 'PENDING_OTP': Ask for OTP verification only
-
-⚠️ NEVER ask for phone/OTP from users with 'AUTHENTICATED' status!
-
-🔧 TEMPORARY DEBUG: If user asks about products and you detect they should be authenticated, 
-treat them as authenticated and provide normal service while we fix the auth persistence issue.
+CRITICAL: Based on authentication status:
+- If status is 'authenticated': User is verified, use all tools and provide full assistance
+- If status is 'pending_phone': Ask for phone number only
+- If status is 'pending_otp': Ask for OTP verification only
 """
     
     dynamic_system_prompt = SYSTEM_PROMPT + auth_context
@@ -1233,6 +1117,7 @@ treat them as authenticated and provide normal service while we fix the auth per
                 # If we were expecting tool responses, create dummy responses
                 if expecting_tool_response and pending_tool_call_ids:
                     print(f"⚠️ Creating dummy tool responses for {len(pending_tool_call_ids)} pending calls")
+                    from langchain_core.messages import ToolMessage
                     for tool_call_id in pending_tool_call_ids:
                         dummy_response = ToolMessage(
                             content="Tool execution completed",
@@ -1248,6 +1133,7 @@ treat them as authenticated and provide normal service while we fix the auth per
         # Handle any remaining pending tool calls at the end
         if expecting_tool_response and pending_tool_call_ids:
             print(f"⚠️ Creating final dummy tool responses for {len(pending_tool_call_ids)} pending calls")
+            from langchain_core.messages import ToolMessage
             for tool_call_id in pending_tool_call_ids:
                 dummy_response = ToolMessage(
                     content="Tool execution completed",
@@ -1260,21 +1146,11 @@ treat them as authenticated and provide normal service while we fix the auth per
     # Ensure we have at least one valid message
     if not filtered_messages:
         print("⚠️ No valid messages after filtering, creating minimal conversation")
+        from langchain_core.messages import HumanMessage
         filtered_messages = [HumanMessage(content="Hello")]
     
     # Use only the filtered messages with system prompt
     messages_with_system = [SystemMessage(content=dynamic_system_prompt)] + filtered_messages
-    
-    # Validate message structure to prevent format errors
-    messages_with_system = validate_message_structure(messages_with_system)
-    
-    # Final safety check - ensure we have valid messages
-    if not messages_with_system or len(messages_with_system) < 2:  # At least system + 1 message
-        print("⚠️ Invalid message structure after validation, creating safe conversation")
-        messages_with_system = [
-            SystemMessage(content=dynamic_system_prompt),
-            HumanMessage(content=latest_user_message if latest_user_message else "Hello")
-        ]
     
     try:
         # Validate messages before sending to avoid BadRequestError
@@ -1329,41 +1205,17 @@ treat them as authenticated and provide normal service while we fix the auth per
             print(f"   - Estimated tokens: {estimate_token_count(messages_with_system)}")
             print(f"   - Latest user message: {latest_user_message[:100] if latest_user_message else 'None'}...")
             
-            # Enhanced error diagnostics
-            print("🔍 Message sequence analysis:")
-            for i, msg in enumerate(messages_with_system):
-                msg_type = getattr(msg, 'type', 'unknown')
-                content_preview = str(getattr(msg, 'content', 'No content'))[:50] + "..."
-                print(f"   [{i}] {msg_type}: {content_preview}")
-            
-            # Check for tool calls in recent messages
-            tool_calls_found = False
-            for msg in messages_with_system[-5:]:  # Check last 5 messages
-                if hasattr(msg, 'tool_calls') and msg.tool_calls:
-                    tool_calls_found = True
-                    print(f"   🔧 Tool calls found: {[tc.get('name', 'unknown') for tc in msg.tool_calls]}")
-            
-            if not tool_calls_found:
-                print("   ✅ No tool calls in recent messages")
-            
             # Try to identify the specific issue
             if "maximum context length" in error_msg.lower() or "context_length_exceeded" in error_msg.lower():
                 error_response_content = "I apologize, but our conversation has become too long. Please start a new chat to continue."
             elif "tool_calls" in error_msg.lower() and "must be followed" in error_msg.lower():
                 error_response_content = "I encountered an issue with tool execution flow. Let me try again with a fresh approach."
             elif "invalid request" in error_msg.lower() or "malformed" in error_msg.lower():
-                # More specific diagnosis for malformed requests
-                print(f"🔍 Malformed request details: {error_msg}")
-                if "tool_calls" in error_msg.lower():
-                    error_response_content = "I encountered an issue with tool formatting. Let me restart our conversation."
-                elif "messages" in error_msg.lower():
-                    error_response_content = "I encountered an issue with message formatting. Please try starting a new conversation."
-                else:
-                    error_response_content = "I encountered an issue with the request format. Please try rephrasing your question."
+                error_response_content = "I encountered an issue with the request format. Please try rephrasing your question."
             elif "token" in error_msg.lower() and "limit" in error_msg.lower():
                 error_response_content = "Your message is too long. Please try asking in a shorter way."
             else:
-                error_response_content = f"I'm experiencing technical difficulties with the AI service ({error_msg[:100]}). Please try again."
+                error_response_content = "I'm experiencing technical difficulties with the AI service. Please try again."
         
         elif "RateLimitError" in error_type:
             error_response_content = "I'm currently handling many requests. Please wait a moment and try again."
@@ -1377,6 +1229,7 @@ treat them as authenticated and provide normal service while we fix the auth per
         print(f"❌ Full traceback: {traceback.format_exc()}")
         
         # Create a simple error response
+        from langchain_core.messages import AIMessage
         error_response = AIMessage(content=json.dumps({
             "answer": error_response_content,
             "end": "How else can I help you with Lotus Electronics products?"

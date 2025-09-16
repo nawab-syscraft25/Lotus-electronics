@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory,
 from flask_cors import CORS
 
 # Import your modules
-from chat_gemini import chat_with_agent, redis_memory
+from chat_gpt_working import chat_with_agent, redis_memory
 from tools.product_search_tool import ProductSearchTool
 from conversation_db import ConversationDB
 from memory_utils import MemoryTracker, check_memory_limit, log_memory_usage
