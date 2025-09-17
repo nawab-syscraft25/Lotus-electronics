@@ -56,7 +56,7 @@ def cleanup_memory():
     logger.info(f"🗑️ Manual cleanup: freed {freed:.1f} MB (was {memory_before:.1f} MB, now {memory_after:.1f} MB)")
     return freed
 
-def check_memory_limit(limit_mb=800):
+def check_memory_limit(limit_mb=2000):
     """Check if memory usage exceeds limit"""
     memory_mb = get_memory_usage()
     if memory_mb > limit_mb:

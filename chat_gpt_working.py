@@ -2191,14 +2191,14 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                 else:
                     print("⚠️ parsed_json is not a dict, creating fallback")
                     parsed_json = {
-                        "answer": "I found some information but couldn't format it properly. Please try asking again.",
+                        "answer": "Can you ask me again later? I'm being asked too many queries right now by users which is  more than usual, so I can't do that for you right now.",
                         "products": [],
                         "product_details": {},
                         "stores": [],
                         "policy_info": {},
                         "comparison": {"products": [], "criteria": [], "table": []},
                         "authentication": {"required": False, "step": "verified", "message": ""},
-                        "end": "How else can I help you?"
+                        "end": "Please wait for some time and ask again."
                     }
                 
                 final_json = json.dumps(parsed_json, ensure_ascii=False, indent=2)
@@ -2207,14 +2207,14 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                 if not final_json or final_json.strip() == "" or final_json == "{}":
                     print("⚠️ Final JSON is empty, using emergency fallback")
                     emergency_response = {
-                        "answer": "I'm having trouble formatting my response. Could you please try asking again?",
+                        "answer": "Can you ask me again later? I'm being asked too many queries right now by users which is  more than usual, so I can't do that for you right now.",
                         "products": [],
                         "product_details": {},
                         "stores": [],
                         "policy_info": {},
                         "comparison": {"products": [], "criteria": [], "table": []},
                         "authentication": {"required": False, "step": "verified", "message": ""},
-                        "end": "What would you like to know about our electronics?"
+                        "end": "Please wait for some time and ask again. "
                     }
                     return json.dumps(emergency_response, ensure_ascii=False, indent=2)
                 
@@ -2243,14 +2243,14 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                 
                 # Create a proper JSON response from the extracted text
                 fallback_response = {
-                    "answer": response_text if response_text else "I apologize, but I encountered an issue processing your request. Please try again.",
+                    "answer": response_text if response_text else "Can you ask me again later? I'm being asked too many queries right now by users which is  more than usual, so I can't do that for you right now.",
                     "products": [],
                     "product_details": {},
                     "stores": [],
                     "policy_info": {},
                     "comparison": {},
                     "authentication": {"required": False, "step": "verified", "message": ""},
-                    "end": "How else can I help you with Lotus Electronics products today?"
+                    "end": " Please wait for some time and ask again. "
                 }
                 
                 return json.dumps(fallback_response, ensure_ascii=False, indent=2)
@@ -2299,12 +2299,12 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
         else:
             # Default response if no content
             error_response = {
-                "answer": "I apologize, but I couldn't process your request at the moment. Please try again or contact our support team.",
+                "answer": "Can you ask me again later? I'm being asked too many queries right now by users which is  more than usual, so I can't do that for you right now.",
                 "products": [],
                 "product_details": {},
                 "stores": [],
                 "policy_info": {},
-                "end": "How else can I assist you with Lotus Electronics products today?"
+                "end": "Please wait for some time and ask again."
             }
             return json.dumps(error_response, ensure_ascii=False, indent=2)
             

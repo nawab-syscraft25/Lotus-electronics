@@ -107,13 +107,44 @@ def chat():
             return jsonify({"status": "success", "data": data})
             
         except json.JSONDecodeError as e:
+            # Log the actual error for debugging
             logger.error(f"JSON decode error: {e}")
             conversation_db.store_log("ERROR", "chat_endpoint", f"JSON decode error: {e}", session_id)
-            return jsonify({"error": "Invalid JSON response from agent"}), 500
+            
+            # Return user-friendly message
+            user_friendly_response = {
+                "status": "success",
+                "data": {
+                    "answer": "Can you ask me again later? I'm being asked too many queries right now by users which is more than usual, so I can't do that for you right now. Please wait for some time and ask again.",
+                    "products": [],
+                    "product_details": {},
+                    "stores": [],
+                    "policy_info": {},
+                    "comparison": {},
+                    "end": "Please try again in a few minutes."
+                }
+            }
+            return jsonify(user_friendly_response), 200
+            
         except Exception as e:
+            # Log the actual error for debugging
             logger.exception("Error in chat_with_agent")
             conversation_db.store_log("ERROR", "chat_endpoint", f"Error in chat_with_agent: {str(e)}", session_id)
-            return jsonify({"error": str(e)}), 500
+            
+            # Return user-friendly message
+            user_friendly_response = {
+                "status": "success",
+                "data": {
+                    "answer": "Can you ask me again later? I'm being asked too many queries right now by users which is more than usual, so I can't do that for you right now. Please wait for some time and ask again.",
+                    "products": [],
+                    "product_details": {},
+                    "stores": [],
+                    "policy_info": {},
+                    "comparison": {},
+                    "end": "Please try again in a few minutes."
+                }
+            }
+            return jsonify(user_friendly_response), 200
 
 
 # ---------- Admin Routes ---------- #
