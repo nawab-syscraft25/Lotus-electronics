@@ -93,10 +93,10 @@ class AdminDashboard {
             if (data.success) {
                 const stats = data.stats;
                 
-                // Update stat cards
-                document.getElementById('total-conversations').textContent = stats.total_conversations;
-                document.getElementById('total-sessions').textContent = stats.total_sessions;
-                document.getElementById('today-conversations').textContent = stats.today_conversations;
+                // Update stat cards with new metrics
+                document.getElementById('total-unique-sessions').textContent = stats.total_unique_sessions;
+                document.getElementById('last-7-days-sessions').textContent = stats.last_7_days_sessions;
+                document.getElementById('today-sessions').textContent = stats.today_sessions;
                 
                 // Load recent conversations
                 this.loadRecentConversations();

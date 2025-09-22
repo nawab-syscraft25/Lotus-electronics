@@ -10,17 +10,25 @@ from flask import Flask, request, jsonify, render_template, send_from_directory,
 from flask_cors import CORS
 
 # Import your modules
-from chat_gpt_working import chat_with_agent, redis_memory
+from chat_working import chat_with_agent, redis_memory
 from tools.product_search_tool import ProductSearchTool
 from conversation_db import ConversationDB
 from memory_utils import MemoryTracker, check_memory_limit, log_memory_usage
 
+from flask import after_this_request
 # Create Flask app
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
+
 # Initialize CORS
 CORS(app)
+
+# X-Frame-Options removed to allow framing from any origin
+# @app.after_request
+# def set_x_frame_options(response):
+#     response.headers["X-Frame-Options"] = "SAMEORIGIN"
+#     return response
 
 # Initialize conversation database
 conversation_db = ConversationDB()

@@ -143,6 +143,42 @@ tool_registry = {
     "sign_in": (sign_in, sign_in_schema),
 }
 
+
+import requests
+
+def check_user(user_name: str):
+    url = "https://portal.lotuselectronics.com/web-api/user/check_user"
+    
+    # Headers from your request (minimal required)
+    headers = {
+        "accept": "application/json, text/plain, */*",
+        "auth-key": "Web2@!9",
+        "auth-token": "",   # <-- if you have a real auth token, put it here
+        "end-client": "Lotus-Web",
+        "origin": "https://www.lotuselectronics.com",
+        "referer": "https://www.lotuselectronics.com/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+    }
+
+    # Payload must be sent as form-data
+    data = {
+        "user_name": user_name,
+        "btn": "0"
+    }
+
+    response = requests.post(url, headers=headers, files=data)
+    
+    try:
+        return response.json()
+    except Exception:
+        return {"error": "Invalid JSON", "raw": response.text}
+
+# Example usage
+if __name__ == "__main__":
+    result = check_user("7000118651")
+    print(result)
+
+
 if __name__ == "__main__":
     phone_number = "8962507486"   # <-- replace with your real number
     session_id = "test_session_1"

@@ -39,7 +39,7 @@ def memory_monitor(func):
                 logger.info(f"🔺 Memory increased by {memory_diff:.1f} MB in {func.__name__}")
             
             # Force garbage collection if memory usage is high
-            if memory_after > 500:  # 500MB threshold
+            if memory_after > 1000:  # 1000MB threshold
                 logger.warning(f"⚠️ High memory usage ({memory_after:.1f} MB), running garbage collection")
                 gc.collect()
                 memory_after_gc = get_memory_usage()

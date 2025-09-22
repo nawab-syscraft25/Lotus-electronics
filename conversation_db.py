@@ -311,20 +311,27 @@ class ConversationDB:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Total conversations
-        cursor.execute('SELECT COUNT(*) FROM conversations')
-        total_conversations = cursor.fetchone()[0]
-        
-        # Total sessions
+        # Total unique sessions
         cursor.execute('SELECT COUNT(DISTINCT session_id) FROM conversations')
-        total_sessions = cursor.fetchone()[0]
+        total_unique_sessions = cursor.fetchone()[0]
         
-        # Today's conversations
+        # Last 7 days sessions
         cursor.execute('''
-            SELECT COUNT(*) FROM conversations 
+            SELECT COUNT(DISTINCT session_id) FROM conversations 
+            WHERE DATE(timestamp) >= DATE('now', '-7 days')
+        ''')
+        last_7_days_sessions = cursor.fetchone()[0]
+        
+        # Today's sessions
+        cursor.execute('''
+            SELECT COUNT(DISTINCT session_id) FROM conversations 
             WHERE DATE(timestamp) = DATE('now')
         ''')
-        today_conversations = cursor.fetchone()[0]
+        today_sessions = cursor.fetchone()[0]
+        
+        # Keep legacy fields for backward compatibility
+        cursor.execute('SELECT COUNT(*) FROM conversations')
+        total_conversations = cursor.fetchone()[0]
         
         # Total logs
         cursor.execute('SELECT COUNT(*) FROM system_logs')
@@ -341,9 +348,14 @@ class ConversationDB:
         conn.close()
         
         return {
+            # New dashboard metrics
+            'total_unique_sessions': total_unique_sessions,
+            'last_7_days_sessions': last_7_days_sessions,
+            'today_sessions': today_sessions,
+            # Legacy fields for backward compatibility
             'total_conversations': total_conversations,
-            'total_sessions': total_sessions,
-            'today_conversations': today_conversations,
+            'total_sessions': total_unique_sessions,  # Alias for total_unique_sessions
+            'today_conversations': today_sessions,    # Alias for today_sessions
             'total_logs': total_logs,
             'error_logs_today': error_logs_today
         }

@@ -76,10 +76,15 @@ async function loadStats() {
         
         if (data.success) {
             const stats = data.stats;
-            document.getElementById('total-conversations').textContent = stats.total_conversations || 0;
-            document.getElementById('total-sessions').textContent = stats.unique_sessions || 0;
-            document.getElementById('today-conversations').textContent = stats.today_conversations || 0;
-            document.getElementById('error-logs-today').textContent = stats.error_logs_today || 0;
+            // Update with new dashboard metrics
+            document.getElementById('total-unique-sessions').textContent = stats.total_unique_sessions || 0;
+            document.getElementById('last-7-days-sessions').textContent = stats.last_7_days_sessions || 0;
+            document.getElementById('today-sessions').textContent = stats.today_sessions || 0;
+            // Keep error logs if element exists
+            const errorElement = document.getElementById('error-logs-today');
+            if (errorElement) {
+                errorElement.textContent = stats.error_logs_today || 0;
+            }
         }
     } catch (error) {
         console.error('Error loading stats:', error);

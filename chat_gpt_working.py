@@ -255,7 +255,7 @@ from tools.Product_details import get_filtered_product_details_tool
 from tools.search_terms_conditions import search_terms_conditions
 
 from tools.contact_user import store_message
-from tools.auth import send_otp, verify_otp, sign_in
+from tools.auth2 import send_otp,  sign_in
 # from langchain_tavily import TavilySearch
 
 @tool
@@ -1400,7 +1400,7 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                 print(f"📱 Detected phone number: {phone_number}")
                 
                 # Use the send_otp_user tool directly
-                from tools.auth import send_otp
+                from tools.auth2 import send_otp
                 otp_result = send_otp(phone_number)
                 
                 if isinstance(otp_result, dict) and otp_result.get("status") == "error":
@@ -1448,7 +1448,7 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                 print(f"🔑 Detected OTP: {otp_code}")
                 
                 # Use the sign_in function for OTP verification
-                from tools.auth import sign_in
+                from tools.auth2 import sign_in
                 verify_result = sign_in(user_phone, otp_code, user_id)
                 
                 print(f"🔧 OTP verification result: {verify_result}")
@@ -1506,7 +1506,7 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
                     })
             elif 'resend' in message_lower:
                 # Resend OTP
-                from tools.auth import send_otp
+                from tools.auth2 import send_otp
                 otp_result = send_otp(user_phone)
                 
                 return json.dumps({
