@@ -232,7 +232,7 @@ function newChat() {
     chatInput.focus();
     
     // Add a welcome message for new chat
-    addMessage("Hello! I'm your Lotus Electronics assistant. How can I help you today?", false);
+    addMessage("Welcome to Lotus Electronics! Please share your Name & Phone number for records and further communications. This will also help us give you the best options as per your purchase history and customized offers for you.", false);
     
     console.log('🆕 New chat started with session:', sessionId);
 }
