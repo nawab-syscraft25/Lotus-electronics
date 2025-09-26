@@ -340,8 +340,8 @@ class AdminDashboard {
                 formatted += '<small class="text-muted">' + metadata.products.length + ' products shown:</small>';
                 formatted += '<div class="mt-2">';
                 
-                // Show first 3 products with details
-                metadata.products.slice(0, 3).forEach(product => {
+                // Show ALL products with details
+                metadata.products.forEach(product => {
                     formatted += `
                         <div class="card mt-2" style="max-width: 100%; font-size: 0.85rem;">
                             <div class="card-body p-2">
@@ -360,10 +360,6 @@ class AdminDashboard {
                         </div>
                     `;
                 });
-                
-                if (metadata.products.length > 3) {
-                    formatted += `<div class="text-muted small mt-2">... and ${metadata.products.length - 3} more products</div>`;
-                }
                 
                 formatted += '</div></div>';
             }
