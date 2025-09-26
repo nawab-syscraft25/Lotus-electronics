@@ -292,7 +292,7 @@ class AdminDashboard {
         }
         
         container.innerHTML = '';
-        messages.forEach(message => {
+        messages.forEach((message, index) => {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${message.message_type}`;
             
@@ -300,9 +300,19 @@ class AdminDashboard {
                 this.formatAIMessage(message.response_metadata) : 
                 message.message_content;
             
+            // Add message number for easy reference
+            const messageNumber = index + 1;
+            const typeIcon = message.message_type === 'human' ? '👤' : '🤖';
+            const typeLabel = message.message_type === 'human' ? 'User' : 'AI Assistant';
+            
             messageDiv.innerHTML = `
+                <div class="d-flex align-items-start mb-2">
+                    <span class="badge text-${message.message_type === 'human' ? 'white' : 'success'} me-2">
+                        ${typeIcon} ${typeLabel}
+                    </span>
+                    <div class="chat-timestamp ms-auto">${this.formatTimestamp(message.timestamp || message.created_at)}</div>
+                </div>
                 <div class="message-content">${messageContent}</div>
-                <div class="chat-timestamp">${this.formatTimestamp(message.timestamp || message.created_at)}</div>
             `;
             
             container.appendChild(messageDiv);
@@ -326,12 +336,59 @@ class AdminDashboard {
             
             // Add product information if available
             if (metadata.products && metadata.products.length > 0) {
-                formatted += '<div class="mt-2"><small class="text-muted">+ ' + metadata.products.length + ' products shown</small></div>';
+                formatted += '<div class="mt-3"><div class="badge bg-info me-2">📦 Products</div>';
+                formatted += '<small class="text-muted">' + metadata.products.length + ' products shown:</small>';
+                formatted += '<div class="mt-2">';
+                
+                // Show first 3 products with details
+                metadata.products.slice(0, 3).forEach(product => {
+                    formatted += `
+                        <div class="card mt-2" style="max-width: 100%; font-size: 0.85rem;">
+                            <div class="card-body p-2">
+                                <div class="d-flex">
+                                    <img src="${product.product_image}" alt="${product.product_name}" 
+                                         style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" class="me-2">
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title mb-1" style="font-size: 0.8rem;">${this.truncateText(product.product_name, 50)}</h6>
+                                        <div class="text-primary fw-bold mb-1">${product.product_mrp}</div>
+                                        <div class="text-muted small">
+                                            ${product.features ? product.features.slice(0, 2).map(f => `<span class="badge bg-light text-dark me-1">${f}</span>`).join('') : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (metadata.products.length > 3) {
+                    formatted += `<div class="text-muted small mt-2">... and ${metadata.products.length - 3} more products</div>`;
+                }
+                
+                formatted += '</div></div>';
             }
             
             // Add comparison information if available
             if (metadata.comparison && metadata.comparison.table && metadata.comparison.table.length > 0) {
-                formatted += '<div class="mt-2"><small class="text-muted">+ Product comparison table</small></div>';
+                formatted += '<div class="mt-2"><div class="badge bg-warning me-2">📊 Comparison</div>';
+                formatted += '<small class="text-muted">Product comparison table with ' + metadata.comparison.table.length + ' features</small></div>';
+            }
+            
+            // Add store information if available
+            if (metadata.stores && metadata.stores.length > 0) {
+                formatted += '<div class="mt-2"><div class="badge bg-success me-2">🏪 Stores</div>';
+                formatted += '<small class="text-muted">' + metadata.stores.length + ' store location(s)</small></div>';
+            }
+            
+            // Add policy information if available
+            if (metadata.policy_info && Object.keys(metadata.policy_info).length > 0) {
+                formatted += '<div class="mt-2"><div class="badge bg-secondary me-2">📋 Policy</div>';
+                formatted += '<small class="text-muted">Policy information provided</small></div>';
+            }
+            
+            // Add end message if available
+            if (metadata.end) {
+                formatted += '<div class="mt-2 p-2 bg-light rounded"><small class="text-muted"><strong>Follow-up:</strong> ' + metadata.end + '</small></div>';
             }
             
             return formatted;
@@ -500,7 +557,7 @@ class AdminDashboard {
                             <h6>Basic Information</h6>
                             <table class="table table-sm">
                                 <tr><td><strong>Session ID:</strong></td><td><code>${conv.session_id}</code></td></tr>
-                                <tr><td><strong>Type:</strong></td><td><span class="badge bg-${conv.message_type === 'human' ? 'primary' : 'secondary'}">${conv.message_type.toUpperCase()}</span></td></tr>
+                                <tr><td><strong>Type:</strong></td><td><span class="badge">${conv.message_type.toUpperCase()}</span></td></tr>
                                 <tr><td><strong>Phone:</strong></td><td>${conv.user_phone || '-'}</td></tr>
                                 <tr><td><strong>Timestamp:</strong></td><td>${this.formatTimestamp(conv.timestamp)}</td></tr>
                             </table>
