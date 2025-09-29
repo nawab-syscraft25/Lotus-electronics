@@ -119,6 +119,44 @@ class ProductSearchTool:
                     brand = "Realme"
                 elif any(b in product_name_lower for b in ['motorola']):
                     brand = "Motorola"
+                elif any(b in product_name_lower for b in ['philips']):
+                    brand = "Philips"
+                elif any(b in product_name_lower for b in ['braun']):
+                    brand = "Braun"
+                elif any(b in product_name_lower for b in ['panasonic']):
+                    brand = "Panasonic"
+                elif any(b in product_name_lower for b in ['havells']):
+                    brand = "Havells"
+                elif any(b in product_name_lower for b in ['syska']):
+                    brand = "Syska"
+                elif any(b in product_name_lower for b in ['nova']):
+                    brand = "Nova"
+                elif any(b in product_name_lower for b in ['kemei']):
+                    brand = "Kemei"
+                elif any(b in product_name_lower for b in ['lg']):
+                    brand = "LG"
+                elif any(b in product_name_lower for b in ['daikin']):
+                    brand = "Daikin"
+                elif any(b in product_name_lower for b in ['voltas']):
+                    brand = "Voltas"
+                elif any(b in product_name_lower for b in ['hitachi']):
+                    brand = "Hitachi"
+                elif any(b in product_name_lower for b in ['carrier']):
+                    brand = "Carrier"
+                elif any(b in product_name_lower for b in ['blue star', 'bluestar']):
+                    brand = "Blue Star"
+                elif any(b in product_name_lower for b in ['godrej']):
+                    brand = "Godrej"
+                elif any(b in product_name_lower for b in ['whirlpool']):
+                    brand = "Whirlpool"
+                elif any(b in product_name_lower for b in ['lloyd']):
+                    brand = "Lloyd"
+                elif any(b in product_name_lower for b in ['o general', 'ogeneral']):
+                    brand = "O General"
+                elif any(b in product_name_lower for b in ['mitsubishi']):
+                    brand = "Mitsubishi"
+                elif any(b in product_name_lower for b in ['haier']):
+                    brand = "Haier"
                 
                 # Extract and validate price
                 try:
@@ -134,8 +172,11 @@ class ProductSearchTool:
                 if price_max is not None and price_val > price_max:
                     continue
                 
-                # Enforce brand diversity - limit each brand to max 2 products
-                if brand_counts.get(brand, 0) >= 2:
+                # Enforce brand diversity - but allow more products if needed
+                # For small result sets (top_k <= 5), allow up to 3 products per brand
+                # For larger result sets, limit to 2 per brand for better diversity
+                max_per_brand = 3 if top_k <= 5 else 2
+                if brand_counts.get(brand, 0) >= max_per_brand:
                     continue
                 
                 # Format result
@@ -160,6 +201,125 @@ class ProductSearchTool:
                 # Stop when we have enough results
                 if len(results) >= top_k:
                     break
+            
+            # If we don't have enough results due to brand diversity constraints, 
+            # do a second pass with relaxed brand limits
+            if len(results) < top_k and len(response.matches) > len(results):
+                print(f"🔄 Only found {len(results)} products with brand diversity. Relaxing constraints to reach {top_k} products...")
+                
+                # Reset and try again with higher brand limits
+                results = []
+                brand_counts = {}
+                max_per_brand = top_k  # Allow more products per brand
+                
+                for match in response.matches:
+                    metadata = match.metadata or {}
+                    
+                    # Validate product name
+                    product_name = metadata.get("product_name", "").strip()
+                    if not product_name or product_name.lower() in ['unknown', 'n/a', 'null']:
+                        continue
+                    
+                    # Extract brand from product name for diversity
+                    brand = "Unknown"
+                    product_name_lower = product_name.lower()
+                    if any(b in product_name_lower for b in ['samsung']):
+                        brand = "Samsung"
+                    elif any(b in product_name_lower for b in ['oneplus', 'one plus']):
+                        brand = "OnePlus"
+                    elif any(b in product_name_lower for b in ['xiaomi', 'redmi', 'mi ']):
+                        brand = "Xiaomi"
+                    elif any(b in product_name_lower for b in ['oppo']):
+                        brand = "Oppo"
+                    elif any(b in product_name_lower for b in ['vivo']):
+                        brand = "Vivo"
+                    elif any(b in product_name_lower for b in ['iphone', 'apple']):
+                        brand = "Apple"
+                    elif any(b in product_name_lower for b in ['nothing']):
+                        brand = "Nothing"
+                    elif any(b in product_name_lower for b in ['realme']):
+                        brand = "Realme"
+                    elif any(b in product_name_lower for b in ['motorola']):
+                        brand = "Motorola"
+                    elif any(b in product_name_lower for b in ['philips']):
+                        brand = "Philips"
+                    elif any(b in product_name_lower for b in ['braun']):
+                        brand = "Braun"
+                    elif any(b in product_name_lower for b in ['panasonic']):
+                        brand = "Panasonic"
+                    elif any(b in product_name_lower for b in ['havells']):
+                        brand = "Havells"
+                    elif any(b in product_name_lower for b in ['syska']):
+                        brand = "Syska"
+                    elif any(b in product_name_lower for b in ['nova']):
+                        brand = "Nova"
+                    elif any(b in product_name_lower for b in ['kemei']):
+                        brand = "Kemei"
+                    elif any(b in product_name_lower for b in ['lg']):
+                        brand = "LG"
+                    elif any(b in product_name_lower for b in ['daikin']):
+                        brand = "Daikin"
+                    elif any(b in product_name_lower for b in ['voltas']):
+                        brand = "Voltas"
+                    elif any(b in product_name_lower for b in ['hitachi']):
+                        brand = "Hitachi"
+                    elif any(b in product_name_lower for b in ['carrier']):
+                        brand = "Carrier"
+                    elif any(b in product_name_lower for b in ['blue star', 'bluestar']):
+                        brand = "Blue Star"
+                    elif any(b in product_name_lower for b in ['godrej']):
+                        brand = "Godrej"
+                    elif any(b in product_name_lower for b in ['whirlpool']):
+                        brand = "Whirlpool"
+                    elif any(b in product_name_lower for b in ['lloyd']):
+                        brand = "Lloyd"
+                    elif any(b in product_name_lower for b in ['o general', 'ogeneral']):
+                        brand = "O General"
+                    elif any(b in product_name_lower for b in ['mitsubishi']):
+                        brand = "Mitsubishi"
+                    elif any(b in product_name_lower for b in ['haier']):
+                        brand = "Haier"
+                    
+                    # Extract and validate price
+                    try:
+                        price_val = float(metadata.get("price", 0))
+                        if price_val <= 0:
+                            continue
+                    except (ValueError, TypeError):
+                        continue
+                    
+                    # Apply price filtering
+                    if price_min is not None and price_val < price_min:
+                        continue
+                    if price_max is not None and price_val > price_max:
+                        continue
+                    
+                    # Relaxed brand diversity - allow more products per brand
+                    if brand_counts.get(brand, 0) >= max_per_brand:
+                        continue
+                    
+                    # Format result
+                    product = {
+                        "id": match.id,
+                        "product_id": metadata.get("product_id", match.id),
+                        "score": round(match.score, 4),
+                        "product_name": product_name,
+                        "brand": brand,
+                        "sku": metadata.get("sku", "N/A"),
+                        "price": price_val,
+                        "url": metadata.get("url", "").strip(),
+                        "image_url": metadata.get("image_url", "").strip(),
+                        "description": metadata.get("text", "")[:200] + "..." if metadata.get("text", "") else ""
+                    }
+                    
+                    results.append(product)
+                    
+                    # Update brand count for diversity
+                    brand_counts[brand] = brand_counts.get(brand, 0) + 1
+                    
+                    # Stop when we have enough results
+                    if len(results) >= top_k:
+                        break
             
             return results
             
