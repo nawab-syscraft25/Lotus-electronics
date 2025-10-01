@@ -2146,12 +2146,13 @@ def chat_with_agent(message: str, session_id: str = "default_session") -> str:
         
         # Error response in JSON format
         error_response = {
-            "answer": f"I'm sorry, there was a technical issue. {error_message}",
+            "answer": f"Can you ask me again later? I'm being asked too many queries right now by users which is  more than usual, so I can't do that for you right now.",
+            "error": f"I'm sorry, there was a technical issue. {error_message}",
             "products": [],
             "product_details": {},
             "stores": [],
             "policy_info": {},
-            "end": "Is there anything else I can help you with from our electronics collection?"
+            "end": "Please wait for some time and ask again."
         }
         return json.dumps(error_response, ensure_ascii=False, indent=2)
 
