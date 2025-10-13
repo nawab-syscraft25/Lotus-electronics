@@ -332,6 +332,8 @@ def check_user(phone_number: str):
     """
     return check_user(phone_number)
 
+
+
 # tavily_tool = TavilySearch(max_results=2,tavily_api_key=tavily_api_key)
 
 tools = [search_products, check_user,get_near_store, get_filtered_product_details_tool, search_terms_conditions, get_user_contact, collect_user_contact]
