@@ -22,13 +22,20 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-product
 
 
 # Initialize CORS: restrict to the chatbot frontend and allow credentials
-CORS(app, origins=["https://chatbot.lotuselectronics.com"], supports_credentials=True)
+# Also allow local development hosts for testing (localhost and 127.0.0.1)
+CORS(app, origins=[
+    "https://chatbot.lotuselectronics.com",
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:8001"
+], supports_credentials=True)
 
 
 @app.after_request
 def set_security_headers(response):
     # Allow embedding only from our trusted chatbot domain using CSP
-    csp_value = "frame-ancestors 'self' https://chatbot.lotuselectronics.com;"
+    # Also allow local development hosts for testing (localhost and 127.0.0.1)
+    csp_value = "frame-ancestors 'self' https://chatbot.lotuselectronics.com http://localhost http://127.0.0.1 http://localhost:8001;"
     existing_csp = response.headers.get('Content-Security-Policy')
     if existing_csp:
         # merge if CSP already exists (append frame-ancestors)
