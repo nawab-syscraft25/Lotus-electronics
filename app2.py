@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify, render_template, send_from_directory,
 from flask_cors import CORS
 
 # Import your modules
-from chat_working import chat_with_agent, redis_memory
+from chat_working_try import chat_with_agent, redis_memory
 from tools.product_search_tool import ProductSearchTool
 from conversation_db import ConversationDB
 from memory_utils import MemoryTracker, check_memory_limit, log_memory_usage
@@ -21,8 +21,27 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
 
-# Initialize CORS
-CORS(app)
+# Initialize CORS: restrict to the chatbot frontend and allow credentials
+CORS(app, origins=["https://chatbot.lotuselectronics.com"], supports_credentials=True)
+
+
+@app.after_request
+def set_security_headers(response):
+    # Allow embedding only from our trusted chatbot domain using CSP
+    csp_value = "frame-ancestors 'self' https://chatbot.lotuselectronics.com;"
+    existing_csp = response.headers.get('Content-Security-Policy')
+    if existing_csp:
+        # merge if CSP already exists (append frame-ancestors)
+        if 'frame-ancestors' not in existing_csp:
+            response.headers['Content-Security-Policy'] = existing_csp + ' ' + csp_value
+    else:
+        response.headers['Content-Security-Policy'] = csp_value
+
+    # Remove X-Frame-Options if present to avoid conflicts with CSP
+    if 'X-Frame-Options' in response.headers:
+        del response.headers['X-Frame-Options']
+
+    return response
 
 # X-Frame-Options removed to allow framing from any origin
 # @app.after_request
