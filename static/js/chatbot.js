@@ -6,7 +6,7 @@ class ChatBot {
         this.apiKey = 'nawabkhan';
         // this.baseUrl = 'http://143.110.186.164:8001';
         // this.baseUrl = 'http://127.0.0.1:8001';
-        this.baseUrl = `${window.location.protocol}//${window.location.hostname}:8001`;
+        this.baseUrl = `${window.location.protocol}//${window.location.hostname}`;
         this.sessionId = this.generateSessionId();
         this.awaitingPhone = false;
         this.awaitingOTP = false;
