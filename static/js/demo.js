@@ -241,7 +241,7 @@ async function sendToBot(userMessage) {
     showTypingIndicator();
 
     try {
-    const response = await fetch(`${window.location.protocol}//${window.location.hostname}:8001/chat`, {
+    const response = await fetch(`${window.location.protocol}//${window.location.hostname}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
