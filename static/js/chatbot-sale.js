@@ -4,7 +4,7 @@ class ChatBot {
         this.isTyping = false;
         this.messageCount = 0;
         this.apiKey = 'nawabkhan';
-        this.baseUrl = `${window.location.protocol}//${window.location.hostname}:8001`;
+        this.baseUrl = `${window.location.protocol}//${window.location.hostname}`;
         this.sessionId = this.generateSessionId();
         this.awaitingPhone = false;
         this.awaitingOTP = false;
